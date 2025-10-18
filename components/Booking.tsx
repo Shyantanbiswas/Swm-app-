@@ -1,0 +1,153 @@
+import React, { useState } from 'react';
+import type { Booking, User } from '../types';
+import { Calendar, Clock, Check, Trash2, Bell } from 'lucide-react';
+
+interface BookingComponentProps {
+  bookings: Booking[];
+  addBooking: (booking: Booking) => void;
+  user: User;
+  setUser: React.Dispatch<React.SetStateAction<User>>;
+}
+
+const BookingComponent: React.FC<BookingComponentProps> = ({ bookings, addBooking, user, setUser }) => {
+    const [wasteType, setWasteType] = useState<'Event Waste' | 'Bulk Household' | 'Garden Waste'>('Bulk Household');
+    const [date, setDate] = useState('');
+    const [timeSlot, setTimeSlot] = useState<'Morning' | 'Afternoon'>('Morning');
+    const [notes, setNotes] = useState('');
+    const [isBooked, setIsBooked] = useState(false);
+    const [confirmationMessage, setConfirmationMessage] = useState('');
+
+    const toggleReminders = () => {
+        setUser(prevUser => ({ ...prevUser, bookingReminders: !prevUser.bookingReminders }));
+    };
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if(!date) {
+            alert("Please select a date.");
+            return;
+        }
+
+        const newBooking: Booking = {
+            id: `BK-${Date.now()}`,
+            date,
+            timeSlot,
+            wasteType,
+            notes,
+            status: 'Scheduled',
+        };
+        addBooking(newBooking);
+        setIsBooked(true);
+
+        if (user.bookingReminders) {
+            setConfirmationMessage("Your eCart has been scheduled. We'll send you a reminder a day before collection.");
+        } else {
+            setConfirmationMessage("Your eCart has been scheduled. You can see the details in your booking history below.");
+        }
+        
+        // Reset form
+        setDate('');
+        setNotes('');
+        setTimeSlot('Morning');
+        setWasteType('Bulk Household');
+
+        setTimeout(() => setIsBooked(false), 5000); // Hide success message after 5s
+    };
+
+    const getStatusChip = (status: Booking['status']) => {
+        if (status === 'Scheduled') {
+            return <div className="flex items-center text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/50 px-2 py-1 rounded-full"><Clock size={12} className="mr-1"/>{status}</div>
+        }
+        return <div className="flex items-center text-xs font-semibold text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/50 px-2 py-1 rounded-full"><Check size={12} className="mr-1"/>{status}</div>
+    }
+
+    return (
+        <div className="space-y-6">
+            <h2 className="text-2xl font-bold text-heading-light dark:text-heading-dark">Book a Special Collection</h2>
+
+             <div className="bg-card-light dark:bg-card-dark p-4 rounded-xl shadow-md border border-border-light dark:border-border-dark flex justify-between items-center">
+                <div className="flex items-center">
+                    <Bell size={20} className="mr-3 text-primary-light flex-shrink-0"/>
+                    <div>
+                        <h4 className="font-semibold text-heading-light dark:text-heading-dark">Booking Reminders</h4>
+                        <p className="text-sm text-text-light dark:text-text-dark">Get a notification one day before collection.</p>
+                    </div>
+                </div>
+                <button 
+                  onClick={toggleReminders} 
+                  className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-light ${user.bookingReminders ? 'bg-primary-light' : 'bg-slate-300 dark:bg-slate-600'}`}
+                  aria-pressed={user.bookingReminders}
+                >
+                    <span className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform ${user.bookingReminders ? 'translate-x-6' : 'translate-x-1'}`}/>
+                </button>
+            </div>
+            
+            <div className="bg-card-light dark:bg-card-dark p-4 rounded-xl shadow-md border border-border-light dark:border-border-dark">
+                {isBooked ? (
+                     <div className="text-center p-4">
+                        <Check className="w-16 h-16 text-primary-light mx-auto mb-4 animate-pulse"/>
+                        <h3 className="text-xl font-bold text-heading-light dark:text-heading-dark">Booking Confirmed!</h3>
+                        <p className="text-text-light dark:text-text-dark mt-2">{confirmationMessage}</p>
+                    </div>
+                ) : (
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-text-light dark:text-text-dark mb-1">Type of Waste</label>
+                            <select value={wasteType} onChange={(e) => setWasteType(e.target.value as any)} className="w-full p-2 bg-background-light dark:bg-slate-700 border border-border-light dark:border-border-dark rounded-md focus:ring-primary-light focus:border-primary-light text-text-light dark:text-text-dark">
+                                <option>Bulk Household</option>
+                                <option>Event Waste</option>
+                                <option>Garden Waste</option>
+                            </select>
+                        </div>
+                         <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-text-light dark:text-text-dark mb-1">Preferred Date</label>
+                                <input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-full p-2 bg-background-light dark:bg-slate-700 border border-border-light dark:border-border-dark rounded-md focus:ring-primary-light focus:border-primary-light text-text-light dark:text-text-dark" min={new Date().toISOString().split("T")[0]}/>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-text-light dark:text-text-dark mb-1">Time Slot</label>
+                                <select value={timeSlot} onChange={(e) => setTimeSlot(e.target.value as any)} className="w-full p-2 bg-background-light dark:bg-slate-700 border border-border-light dark:border-border-dark rounded-md focus:ring-primary-light focus:border-primary-light text-text-light dark:text-text-dark">
+                                    <option>Morning</option>
+                                    <option>Afternoon</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-text-light dark:text-text-dark mb-1">Additional Notes (Optional)</label>
+                            <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} placeholder="e.g., heavy items, specific location" className="w-full p-2 bg-background-light dark:bg-slate-700 border border-border-light dark:border-border-dark rounded-md focus:ring-primary-light focus:border-primary-light text-text-light dark:text-text-dark"></textarea>
+                        </div>
+                        <button type="submit" className="w-full bg-primary-light text-white font-bold py-3 rounded-lg hover:bg-primary-dark transition-transform transform hover:scale-105">
+                            Book eCart Now
+                        </button>
+                    </form>
+                )}
+            </div>
+
+            <div>
+                <h3 className="text-xl font-semibold text-heading-light dark:text-heading-dark mb-3">Booking History</h3>
+                {bookings.length === 0 ? (
+                    <p className="text-text-light dark:text-text-dark text-center py-4">No special bookings made yet.</p>
+                ) : (
+                    <ul className="space-y-3">
+                        {bookings.slice().reverse().map(booking => (
+                             <li key={booking.id} className="bg-card-light dark:bg-card-dark p-4 rounded-lg shadow-md flex items-start justify-between border border-border-light dark:border-border-dark">
+                                <div className="flex items-center space-x-4">
+                                    <div className="bg-primary-light/10 text-primary-light p-3 rounded-full">
+                                        <Trash2 size={24}/>
+                                    </div>
+                                    <div>
+                                        <p className="font-bold text-heading-light dark:text-heading-dark">{booking.wasteType}</p>
+                                        <p className="text-sm text-text-light dark:text-text-dark flex items-center"><Calendar size={14} className="mr-1.5"/> {new Date(booking.date).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })} at {booking.timeSlot}</p>
+                                    </div>
+                                </div>
+                                {getStatusChip(booking.status)}
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </div>
+        </div>
+    );
+}
+
+export default BookingComponent;
