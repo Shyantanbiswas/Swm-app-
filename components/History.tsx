@@ -36,20 +36,28 @@ const HistoryComponent: React.FC<HistoryComponentProps> = ({ payments }) => {
     };
 
     return (
-        <div>
+        <div className="animate-fade-in-up">
             <h2 className="text-2xl font-bold text-heading-light dark:text-heading-dark mb-4">Payment History</h2>
             {payments.length === 0 ? (
-                <p className="text-text-light dark:text-text-dark">No payment history found.</p>
+                <div className="text-center py-10">
+                    <FileText className="mx-auto h-12 w-12 text-slate-400" />
+                    <h3 className="mt-2 text-lg font-medium text-heading-light dark:text-heading-dark">No payments yet</h3>
+                    <p className="mt-1 text-sm text-text-light dark:text-text-dark">Your payment history will appear here.</p>
+                </div>
             ) : (
                 <ul className="space-y-3">
-                    {payments.map((payment) => (
-                        <li key={payment.id} className="bg-card-light dark:bg-card-dark p-4 rounded-lg shadow-md flex justify-between items-center border border-border-light dark:border-border-dark transition-all hover:shadow-lg hover:border-primary-light">
+                    {payments.map((payment, index) => (
+                        <li 
+                            key={payment.id} 
+                            className="bg-card-light dark:bg-card-dark p-4 rounded-lg shadow-md flex justify-between items-center border-l-4 border-primary transition-all hover:shadow-lg hover:border-accent animate-fade-in-up"
+                            style={{ animationDelay: `${index * 75}ms` }}
+                        >
                             <div>
-                                <p className="font-bold text-primary-light text-lg">₹{payment.amount.toFixed(2)}</p>
+                                <p className="font-bold text-primary text-lg">₹{payment.amount.toFixed(2)}</p>
                                 <p className="text-sm text-text-light dark:text-text-dark">{payment.date.toLocaleDateString()}</p>
                                 <p className="text-xs text-slate-400 dark:text-slate-500 font-mono">{payment.id}</p>
                             </div>
-                            <button onClick={() => generatePDF(payment)} className="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-primary-light rounded-full transition">
+                            <button onClick={() => generatePDF(payment)} className="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-primary rounded-full transition">
                                 <FileText size={24} />
                             </button>
                         </li>

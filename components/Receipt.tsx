@@ -55,8 +55,11 @@ const Receipt: React.FC<ReceiptProps> = ({ payment, setCurrentView }) => {
     };
 
     return (
-        <div className="text-center p-4 flex flex-col items-center justify-center h-full">
-            <CheckCircle className="w-20 h-20 text-green-500 mb-4 animate-pulse" />
+        <div className="text-center p-4 flex flex-col items-center justify-center h-full animate-scale-in">
+            <div className="relative w-24 h-24 flex items-center justify-center mb-4">
+                <div className="absolute inset-0 bg-gradient-to-r from-green-400 to-cyan-400 rounded-full animate-pulse blur-lg opacity-50"></div>
+                <CheckCircle className="w-20 h-20 text-white bg-green-500 rounded-full p-2 relative" />
+            </div>
             <h2 className="text-3xl font-bold text-heading-light dark:text-heading-dark">Payment Successful!</h2>
             <p className="text-text-light dark:text-text-dark mt-2 mb-6">Thank you for your timely payment.</p>
 
@@ -77,7 +80,7 @@ const Receipt: React.FC<ReceiptProps> = ({ payment, setCurrentView }) => {
                     </div>
                     <div className="flex justify-between pt-2 border-t mt-2 border-border-light dark:border-border-dark">
                         <span className="font-bold text-slate-600 dark:text-slate-300">Amount Paid:</span>
-                        <span className="font-bold text-primary-light text-lg">₹{payment.amount.toFixed(2)}</span>
+                        <span className="font-bold text-primary text-lg">₹{payment.amount.toFixed(2)}</span>
                     </div>
                 </div>
             </div>
@@ -85,13 +88,13 @@ const Receipt: React.FC<ReceiptProps> = ({ payment, setCurrentView }) => {
             <div className="space-y-3 w-full max-w-sm">
                 <button
                     onClick={generatePDF}
-                    className="w-full bg-primary-light text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center text-lg hover:bg-primary-dark transition-transform transform hover:scale-105"
+                    className="w-full bg-gradient-to-r from-primary to-accent text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center text-lg shadow-lg hover:shadow-glow-primary transition-all transform hover:scale-105"
                 >
                     <Download className="mr-3" /> Download Receipt
                 </button>
                  <button
                     onClick={() => setCurrentView(ViewType.History)}
-                    className="w-full bg-secondary-light dark:bg-slate-600 text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center text-lg hover:bg-slate-700 transition-transform transform hover:scale-105"
+                    className="w-full bg-gradient-to-r from-secondary to-slate-700 dark:from-slate-600 dark:to-slate-800 text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center text-lg shadow-md hover:shadow-lg transition-all transform hover:scale-105"
                 >
                     <History className="mr-3" /> View All History
                 </button>

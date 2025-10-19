@@ -71,17 +71,17 @@ const AuthFlow: React.FC = () => {
     }
 
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-background-light dark:bg-background-dark p-4 font-sans">
+        <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-200 dark:from-slate-900 dark:to-background-dark p-4 font-sans">
             <div className="w-full max-w-sm mx-auto text-center">
                 <div className="flex justify-center items-center gap-3 mb-6">
-                    <Recycle className="h-10 w-10 text-primary-light" />
+                    <Recycle className="h-10 w-10 text-primary" />
                     <h1 className="text-4xl font-bold text-heading-light dark:text-heading-dark">EcoTrack</h1>
                 </div>
                 <p className="text-text-light dark:text-text-dark mb-8">Your partner in sustainable waste management.</p>
                 
                 <div className="bg-card-light dark:bg-card-dark p-8 rounded-2xl shadow-xl w-full">
                     {step === 'mobile' ? (
-                        <form onSubmit={handleSendOtp}>
+                        <form onSubmit={handleSendOtp} className="animate-scale-in">
                             <h2 className="text-2xl font-semibold text-heading-light dark:text-heading-dark mb-2">Login or Sign Up</h2>
                             <p className="text-text-light dark:text-text-dark mb-6 text-sm">Enter your mobile number to receive an OTP on WhatsApp.</p>
                             <div className="relative mb-4">
@@ -91,23 +91,23 @@ const AuthFlow: React.FC = () => {
                                     value={mobileNumber}
                                     onChange={(e) => setMobileNumber(e.target.value.replace(/[^0-9]/g, '').slice(0, 10))}
                                     placeholder="10-digit mobile number"
-                                    className="w-full p-3 pl-12 border border-border-light dark:border-border-dark bg-slate-100 dark:bg-slate-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-light"
+                                    className="w-full p-3 pl-12 border border-border-light dark:border-border-dark bg-slate-100 dark:bg-slate-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                                 />
                             </div>
                             <button
                                 type="submit"
                                 disabled={mobileNumber.length !== 10}
-                                className="w-full bg-primary-light text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center text-lg hover:bg-primary-dark transition-all transform hover:scale-105 disabled:bg-slate-400 disabled:dark:bg-slate-600 disabled:scale-100"
+                                className="w-full bg-gradient-to-r from-primary to-accent text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center text-lg shadow-lg hover:shadow-glow-primary transition-all transform hover:scale-105 disabled:from-slate-400 disabled:to-slate-500 disabled:shadow-none disabled:scale-100"
                             >
                                 Send OTP <ArrowRight className="ml-2" />
                             </button>
                         </form>
                     ) : (
-                         <form onSubmit={handleVerifyOtp}>
+                         <form onSubmit={handleVerifyOtp} className="animate-scale-in">
                             <h2 className="text-2xl font-semibold text-heading-light dark:text-heading-dark mb-2">Verify OTP</h2>
                             <p className="text-text-light dark:text-text-dark mb-4 text-sm">
-                                Enter the 6-digit code sent to <span className="font-bold">{mobileNumber}</span>.
-                                <button type="button" onClick={changeNumber} className="text-primary-light ml-2 text-sm font-semibold">Change</button>
+                                Enter the code sent to <span className="font-bold">{mobileNumber}</span>.
+                                <button type="button" onClick={changeNumber} className="text-primary ml-2 text-sm font-semibold">Change</button>
                             </p>
                             
                             <div className="bg-blue-100 dark:bg-blue-900/50 border-l-4 border-blue-500 text-blue-800 dark:text-blue-300 p-3 rounded-r-lg shadow-sm mb-4 text-sm flex items-start" role="alert">
@@ -124,13 +124,13 @@ const AuthFlow: React.FC = () => {
                                     value={otp}
                                     onChange={(e) => setOtp(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
                                     placeholder="6-digit OTP"
-                                    className="w-full p-3 pl-12 border border-border-light dark:border-border-dark bg-slate-100 dark:bg-slate-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-light"
+                                    className="w-full p-3 pl-12 border border-border-light dark:border-border-dark bg-slate-100 dark:bg-slate-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                                 />
                             </div>
                             <button
                                 type="submit"
                                 disabled={otp.length !== 6}
-                                className="w-full bg-primary-light text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center text-lg hover:bg-primary-dark transition-all transform hover:scale-105 disabled:bg-slate-400 disabled:dark:bg-slate-600 disabled:scale-100"
+                                className="w-full bg-gradient-to-r from-primary to-accent text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center text-lg shadow-lg hover:shadow-glow-primary transition-all transform hover:scale-105 disabled:from-slate-400 disabled:to-slate-500 disabled:shadow-none disabled:scale-100"
                             >
                                 Verify & Proceed
                             </button>
@@ -139,7 +139,7 @@ const AuthFlow: React.FC = () => {
                                     type="button"
                                     onClick={handleResendOtp}
                                     disabled={resendTimer > 0}
-                                    className="text-primary-light font-semibold disabled:text-slate-400 disabled:cursor-not-allowed flex items-center justify-center w-full"
+                                    className="text-primary font-semibold disabled:text-slate-400 disabled:cursor-not-allowed flex items-center justify-center w-full"
                                 >
                                     <RefreshCw size={14} className={`mr-1 ${resendTimer > 0 ? 'animate-spin' : ''}`} style={{animationDuration: '2s'}} />
                                     {resendTimer > 0 ? `Resend in ${resendTimer}s` : 'Resend OTP'}

@@ -89,23 +89,23 @@ const ComplaintsComponent: React.FC<ComplaintsComponentProps> = ({ complaints, a
   
   const getStatusColor = (status: Complaint['status']) => {
     switch (status) {
-        case 'Pending': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300';
-        case 'In Progress': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300';
-        case 'Resolved': return 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300';
+        case 'Pending': return 'bg-warning/10 text-warning-dark dark:bg-warning/20 dark:text-warning';
+        case 'In Progress': return 'bg-info/10 text-info-dark dark:bg-info/20 dark:text-info';
+        case 'Resolved': return 'bg-success/10 text-success-dark dark:bg-success/20 dark:text-success';
     }
   }
 
   return (
-    <div>
+    <div className="animate-fade-in-up">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-bold text-heading-light dark:text-heading-dark">Complaints & Feedback</h2>
-        <button onClick={handleToggleNewForm} className="bg-primary-light text-white p-2 rounded-full hover:bg-primary-dark transition-transform transform hover:scale-110">
+        <button onClick={handleToggleNewForm} className="bg-gradient-to-r from-primary to-accent text-white p-2 rounded-full shadow-md hover:shadow-glow-primary transition-transform transform hover:scale-110">
           <PlusCircle size={24} />
         </button>
       </div>
 
       {showForm && (
-        <div className="bg-card-light dark:bg-card-dark p-4 rounded-lg shadow-md mb-6 border border-border-light dark:border-border-dark">
+        <div className="bg-card-light dark:bg-card-dark p-4 rounded-lg shadow-md mb-6 border border-border-light dark:border-border-dark animate-fade-in-down">
           <form onSubmit={handleSubmit} className="space-y-4">
             <h3 className="text-lg font-semibold text-heading-light dark:text-heading-dark">{editingComplaintId ? 'Edit Complaint' : 'File a New Complaint'}</h3>
             <div>
@@ -114,7 +114,7 @@ const ComplaintsComponent: React.FC<ComplaintsComponentProps> = ({ complaints, a
                 id="issue"
                 value={issue}
                 onChange={(e) => setIssue(e.target.value)}
-                className="mt-1 block w-full px-3 py-2 bg-card-light dark:bg-slate-700 text-text-light dark:text-text-dark border border-slate-300 dark:border-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-light focus:border-primary-light"
+                className="mt-1 block w-full px-3 py-2 bg-background-light dark:bg-slate-700 text-text-light dark:text-text-dark border border-border-light dark:border-border-dark rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
               >
                 <option value="">Select an issue</option>
                 <option>Missed Pickup</option>
@@ -130,7 +130,7 @@ const ComplaintsComponent: React.FC<ComplaintsComponentProps> = ({ complaints, a
                 rows={4}
                 value={details}
                 onChange={(e) => setDetails(e.target.value)}
-                className="mt-1 block w-full px-3 py-2 bg-card-light dark:bg-slate-700 text-text-light dark:text-text-dark border border-slate-300 dark:border-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-light focus:border-primary-light"
+                className="mt-1 block w-full px-3 py-2 bg-background-light dark:bg-slate-700 text-text-light dark:text-text-dark border border-border-light dark:border-border-dark rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
                 placeholder="Please provide as much detail as possible."
               />
             </div>
@@ -151,7 +151,7 @@ const ComplaintsComponent: React.FC<ComplaintsComponentProps> = ({ complaints, a
             </div>
             <div className="flex justify-end space-x-2">
               <button type="button" onClick={clearAndCloseForm} className="px-4 py-2 bg-slate-200 dark:bg-slate-600 text-slate-800 dark:text-slate-200 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-500">Cancel</button>
-              <button type="submit" className="px-4 py-2 bg-primary-light text-white rounded-lg hover:bg-primary-dark">Submit</button>
+              <button type="submit" className="px-4 py-2 bg-gradient-to-r from-primary to-accent text-white rounded-lg hover:shadow-glow-primary">Submit</button>
             </div>
           </form>
         </div>
@@ -162,8 +162,8 @@ const ComplaintsComponent: React.FC<ComplaintsComponentProps> = ({ complaints, a
         <p className="text-text-light dark:text-text-dark">No complaints filed.</p>
       ) : (
         <ul className="space-y-3">
-          {complaints.map((c) => (
-            <li key={c.id} className="bg-card-light dark:bg-card-dark p-4 rounded-lg shadow-md border border-border-light dark:border-border-dark">
+          {complaints.map((c, index) => (
+            <li key={c.id} className="bg-card-light dark:bg-card-dark p-4 rounded-lg shadow-md border border-border-light dark:border-border-dark animate-fade-in-up" style={{ animationDelay: `${index * 75}ms` }}>
               <div className="flex justify-between items-start">
                   <div className="flex-grow pr-4">
                     <p className="font-bold text-heading-light dark:text-heading-dark">{c.issue}</p>
@@ -172,7 +172,7 @@ const ComplaintsComponent: React.FC<ComplaintsComponentProps> = ({ complaints, a
                   <div className="flex-shrink-0 flex items-center space-x-2">
                     <span className={`text-xs font-bold px-2 py-1 rounded-full ${getStatusColor(c.status)}`}>{c.status}</span>
                     {c.status !== 'Resolved' && (
-                        <button onClick={() => handleEditClick(c)} className="p-1.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-primary-light rounded-full transition" aria-label="Edit complaint">
+                        <button onClick={() => handleEditClick(c)} className="p-1.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-primary rounded-full transition" aria-label="Edit complaint">
                             <Pencil size={16} />
                         </button>
                     )}

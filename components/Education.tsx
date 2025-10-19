@@ -27,16 +27,20 @@ const EducationComponent: React.FC = () => {
     };
 
     return (
-        <div>
+        <div className="animate-fade-in-up">
             <h2 className="text-2xl font-bold text-heading-light dark:text-heading-dark mb-4">Waste Management 101</h2>
             <p className="text-text-light dark:text-text-dark mb-6">Learn how your small actions can make a big impact. Here are some tips to get you started.</p>
             
             <div className="space-y-3">
                 {educationContent.map((item, index) => (
-                    <div key={index} className="bg-card-light dark:bg-card-dark rounded-lg shadow-md overflow-hidden border border-border-light dark:border-border-dark">
+                    <div 
+                        key={index} 
+                        className="bg-card-light dark:bg-card-dark rounded-lg shadow-md overflow-hidden border border-border-light dark:border-border-dark animate-fade-in-up"
+                        style={{ animationDelay: `${index * 100}ms` }}
+                    >
                         <button 
                             onClick={() => toggleAccordion(index)}
-                            className={`w-full flex justify-between items-center p-4 text-left font-semibold text-lg transition-colors duration-300 ${openIndex === index ? 'text-primary-light' : 'text-heading-light dark:text-heading-dark'}`}
+                            className={`w-full flex justify-between items-center p-4 text-left font-semibold text-lg transition-colors duration-300 ${openIndex === index ? 'text-primary bg-primary/5 dark:bg-primary/10' : 'text-heading-light dark:text-heading-dark'}`}
                         >
                             <span>{item.title}</span>
                             <ChevronDown className={`transform transition-transform duration-300 ${openIndex === index ? 'rotate-180' : ''}`} />

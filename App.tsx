@@ -81,16 +81,16 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className={`min-h-screen font-sans transition-colors duration-300 ${theme}`}>
+    <div className={`min-h-screen font-sans transition-colors duration-300 ${theme} bg-gradient-to-b from-slate-50 to-slate-100 dark:from-background-dark dark:to-slate-900`}>
       <div className="w-full max-w-lg mx-auto bg-card-light dark:bg-card-dark shadow-2xl flex flex-col h-screen">
         <Header user={user} />
-        <main className="flex-grow p-4 overflow-y-auto pb-24 bg-background-light dark:bg-background-dark">
+        <main className="flex-grow p-4 overflow-y-auto pb-24 bg-transparent animate-fade-in">
           {renderView()}
         </main>
         <BottomNav currentView={currentView} setCurrentView={setCurrentView} />
         <button
           onClick={() => setChatbotOpen(true)}
-          className="fixed bottom-24 right-4 bg-primary-light text-white p-4 rounded-full shadow-lg hover:bg-primary-dark transition-transform transform hover:scale-110 z-30"
+          className="fixed bottom-24 right-4 bg-gradient-to-r from-primary to-accent text-white p-4 rounded-full shadow-lg hover:shadow-glow-primary transition-all transform hover:scale-110 z-30 animate-pulse-glow"
           aria-label="Open AI Chatbot"
         >
           <Bot size={28} />
@@ -116,19 +116,19 @@ const BottomNav: React.FC<BottomNavProps> = ({ currentView, setCurrentView }) =>
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 w-full max-w-lg mx-auto bg-card-light dark:bg-card-dark border-t border-border-light dark:border-border-dark shadow-t-lg z-20">
+    <nav className="fixed bottom-0 left-0 right-0 w-full max-w-lg mx-auto bg-card-light/80 dark:bg-card-dark/80 backdrop-blur-lg border-t border-border-light dark:border-border-dark shadow-t-2xl z-20">
       <div className="flex justify-around items-center h-16">
         {navItems.map((item) => (
           <button
             key={item.label}
             onClick={() => setCurrentView(item.view)}
-            className={`flex flex-col items-center justify-center w-full transition-all duration-300 h-full ${
-              currentView === item.view ? 'text-primary-light -translate-y-1' : 'text-secondary dark:text-secondary-dark hover:text-primary-light'
+            className={`relative flex flex-col items-center justify-center w-full transition-all duration-300 h-full ${
+              currentView === item.view ? 'text-primary' : 'text-secondary dark:text-secondary-dark hover:text-primary'
             }`}
           >
             <item.icon size={24} strokeWidth={currentView === item.view ? 2.5 : 2} />
-            <span className="text-xs font-medium mt-1">{item.label}</span>
-             {currentView === item.view && <div className="w-8 h-1 bg-primary-light rounded-full mt-1"></div>}
+            <span className={`text-xs font-semibold mt-1 transition-opacity ${currentView === item.view ? 'opacity-100' : 'opacity-70'}`}>{item.label}</span>
+             {currentView === item.view && <div className="absolute -bottom-1 w-8 h-1 bg-gradient-to-r from-primary to-accent rounded-full mt-1 transition-all"></div>}
           </button>
         ))}
       </div>

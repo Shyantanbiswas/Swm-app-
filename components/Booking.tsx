@@ -52,9 +52,9 @@ const BookingComponent: React.FC<BookingComponentProps> = ({ bookings, addBookin
 
     const getStatusChip = (status: Booking['status']) => {
         if (status === 'Scheduled') {
-            return <div className="flex items-center text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/50 px-2 py-1 rounded-full"><Clock size={12} className="mr-1"/>{status}</div>
+            return <div className="flex items-center text-xs font-semibold text-info bg-info/10 dark:bg-info/20 px-2 py-1 rounded-full"><Clock size={12} className="mr-1"/>{status}</div>
         }
-        return <div className="flex items-center text-xs font-semibold text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/50 px-2 py-1 rounded-full"><Check size={12} className="mr-1"/>{status}</div>
+        return <div className="flex items-center text-xs font-semibold text-success bg-success/10 dark:bg-success/20 px-2 py-1 rounded-full"><Check size={12} className="mr-1"/>{status}</div>
     }
 
     const getWasteTypeIcon = (wasteType: Booking['wasteType']) => {
@@ -74,11 +74,11 @@ const BookingComponent: React.FC<BookingComponentProps> = ({ bookings, addBookin
 
     return (
         <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-heading-light dark:text-heading-dark">Book a Special Collection</h2>
+            <h2 className="text-2xl font-bold text-heading-light dark:text-heading-dark animate-fade-in-down">Book a Special Collection</h2>
 
-             <div className="bg-card-light dark:bg-card-dark p-4 rounded-xl shadow-md border border-border-light dark:border-border-dark flex justify-between items-center">
+             <div className="bg-card-light dark:bg-card-dark p-4 rounded-xl shadow-md border border-border-light dark:border-border-dark flex justify-between items-center animate-fade-in-up" style={{ animationDelay: '100ms' }}>
                 <div className="flex items-center">
-                    <Bell size={20} className="mr-3 text-primary-light flex-shrink-0"/>
+                    <Bell size={20} className="mr-3 text-primary flex-shrink-0"/>
                     <div>
                         <h4 className="font-semibold text-heading-light dark:text-heading-dark">Booking Reminders</h4>
                         <p className="text-sm text-text-light dark:text-text-dark">Get a notification one day before collection.</p>
@@ -86,17 +86,17 @@ const BookingComponent: React.FC<BookingComponentProps> = ({ bookings, addBookin
                 </div>
                 <button 
                   onClick={toggleBookingReminders} 
-                  className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-light ${user.bookingReminders ? 'bg-primary-light' : 'bg-slate-300 dark:bg-slate-600'}`}
+                  className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary ${user.bookingReminders ? 'bg-primary' : 'bg-slate-300 dark:bg-slate-600'}`}
                   aria-pressed={user.bookingReminders}
                 >
                     <span className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform ${user.bookingReminders ? 'translate-x-6' : 'translate-x-1'}`}/>
                 </button>
             </div>
             
-            <div className="bg-card-light dark:bg-card-dark p-4 rounded-xl shadow-md border border-border-light dark:border-border-dark">
+            <div className="bg-card-light dark:bg-card-dark p-4 rounded-xl shadow-md border border-border-light dark:border-border-dark animate-fade-in-up" style={{ animationDelay: '200ms' }}>
                 {isBooked ? (
-                     <div className="text-center p-4">
-                        <Check className="w-16 h-16 text-primary-light mx-auto mb-4 animate-pulse"/>
+                     <div className="text-center p-4 animate-scale-in">
+                        <Check className="w-16 h-16 text-primary mx-auto mb-4 animate-pulse"/>
                         <h3 className="text-xl font-bold text-heading-light dark:text-heading-dark">Booking Confirmed!</h3>
                         <p className="text-text-light dark:text-text-dark mt-2">{confirmationMessage}</p>
                     </div>
@@ -104,7 +104,7 @@ const BookingComponent: React.FC<BookingComponentProps> = ({ bookings, addBookin
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div>
                             <label className="block text-sm font-medium text-text-light dark:text-text-dark mb-1">Type of Waste</label>
-                            <select value={wasteType} onChange={(e) => setWasteType(e.target.value as any)} className="w-full p-2 bg-background-light dark:bg-slate-700 border border-border-light dark:border-border-dark rounded-md focus:ring-primary-light focus:border-primary-light text-text-light dark:text-text-dark">
+                            <select value={wasteType} onChange={(e) => setWasteType(e.target.value as any)} className="w-full p-2 bg-background-light dark:bg-slate-700 border border-border-light dark:border-border-dark rounded-md focus:ring-primary focus:border-primary text-text-light dark:text-text-dark">
                                 <option>Bulk Household</option>
                                 <option>Event Waste</option>
                                 <option>Garden Waste</option>
@@ -113,11 +113,11 @@ const BookingComponent: React.FC<BookingComponentProps> = ({ bookings, addBookin
                          <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-text-light dark:text-text-dark mb-1">Preferred Date</label>
-                                <input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-full p-2 bg-background-light dark:bg-slate-700 border border-border-light dark:border-border-dark rounded-md focus:ring-primary-light focus:border-primary-light text-text-light dark:text-text-dark" min={new Date().toISOString().split("T")[0]}/>
+                                <input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-full p-2 bg-background-light dark:bg-slate-700 border border-border-light dark:border-border-dark rounded-md focus:ring-primary focus:border-primary text-text-light dark:text-text-dark" min={new Date().toISOString().split("T")[0]}/>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-text-light dark:text-text-dark mb-1">Time Slot</label>
-                                <select value={timeSlot} onChange={(e) => setTimeSlot(e.target.value as any)} className="w-full p-2 bg-background-light dark:bg-slate-700 border border-border-light dark:border-border-dark rounded-md focus:ring-primary-light focus:border-primary-light text-text-light dark:text-text-dark">
+                                <select value={timeSlot} onChange={(e) => setTimeSlot(e.target.value as any)} className="w-full p-2 bg-background-light dark:bg-slate-700 border border-border-light dark:border-border-dark rounded-md focus:ring-primary focus:border-primary text-text-light dark:text-text-dark">
                                     <option>Morning</option>
                                     <option>Afternoon</option>
                                 </select>
@@ -125,25 +125,25 @@ const BookingComponent: React.FC<BookingComponentProps> = ({ bookings, addBookin
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-text-light dark:text-text-dark mb-1">Additional Notes (Optional)</label>
-                            <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} placeholder="e.g., heavy items, specific location" className="w-full p-2 bg-background-light dark:bg-slate-700 border border-border-light dark:border-border-dark rounded-md focus:ring-primary-light focus:border-primary-light text-text-light dark:text-text-dark"></textarea>
+                            <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} placeholder="e.g., heavy items, specific location" className="w-full p-2 bg-background-light dark:bg-slate-700 border border-border-light dark:border-border-dark rounded-md focus:ring-primary focus:border-primary text-text-light dark:text-text-dark"></textarea>
                         </div>
-                        <button type="submit" className="w-full bg-primary-light text-white font-bold py-3 rounded-lg hover:bg-primary-dark transition-transform transform hover:scale-105">
+                        <button type="submit" className="w-full bg-gradient-to-r from-primary to-accent text-white font-bold py-3 rounded-lg shadow-lg hover:shadow-glow-primary transition-all transform hover:scale-105">
                             Book eCart Now
                         </button>
                     </form>
                 )}
             </div>
 
-            <div>
+            <div className="animate-fade-in-up" style={{ animationDelay: '300ms' }}>
                 <h3 className="text-xl font-semibold text-heading-light dark:text-heading-dark mb-3">Booking History</h3>
                 {bookings.length === 0 ? (
                     <p className="text-text-light dark:text-text-dark text-center py-4">No special bookings made yet.</p>
                 ) : (
                     <ul className="space-y-3">
-                        {bookings.slice().reverse().map(booking => (
-                             <li key={booking.id} className="bg-card-light dark:bg-card-dark p-4 rounded-lg shadow-md flex items-start justify-between border border-border-light dark:border-border-dark">
+                        {bookings.slice().reverse().map((booking, index) => (
+                             <li key={booking.id} className="bg-card-light dark:bg-card-dark p-4 rounded-lg shadow-md flex items-start justify-between border border-border-light dark:border-border-dark animate-fade-in-up" style={{ animationDelay: `${index * 75}ms` }}>
                                 <div className="flex items-center space-x-4">
-                                    <div className="bg-primary-light/10 text-primary-light p-3 rounded-full">
+                                    <div className="bg-gradient-to-br from-primary/10 to-accent/10 text-primary p-3 rounded-full">
                                         {getWasteTypeIcon(booking.wasteType)}
                                     </div>
                                     <div>
