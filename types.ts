@@ -5,6 +5,7 @@ export enum ViewType {
     Complaints = 'Complaints',
     Education = 'Education',
     Booking = 'Booking',
+    Profile = 'Profile',
 }
 
 export type View = ViewType;
@@ -14,6 +15,7 @@ export interface User {
     householdId: string;
     hasGreenBadge: boolean;
     bookingReminders: boolean;
+    profilePicture?: string;
 }
 
 export interface Payment {

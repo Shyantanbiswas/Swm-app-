@@ -36,10 +36,10 @@ const EducationComponent: React.FC = () => {
                     <div key={index} className="bg-card-light dark:bg-card-dark rounded-lg shadow-md overflow-hidden border border-border-light dark:border-border-dark">
                         <button 
                             onClick={() => toggleAccordion(index)}
-                            className="w-full flex justify-between items-center p-4 text-left font-semibold text-lg text-heading-light dark:text-heading-dark"
+                            className={`w-full flex justify-between items-center p-4 text-left font-semibold text-lg transition-colors duration-300 ${openIndex === index ? 'text-primary-light' : 'text-heading-light dark:text-heading-dark'}`}
                         >
                             <span>{item.title}</span>
-                            <ChevronDown className={`transform transition-transform duration-300 ${openIndex === index ? 'rotate-180 text-primary-light' : ''}`} />
+                            <ChevronDown className={`transform transition-transform duration-300 ${openIndex === index ? 'rotate-180' : ''}`} />
                         </button>
                         <div className={`transition-all duration-500 ease-in-out ${openIndex === index ? 'max-h-96' : 'max-h-0'}`}>
                             <div className="px-4 pb-4">

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Home, IndianRupee, History, MessageSquareWarning, BookOpen, Bot, ShoppingBasket } from 'lucide-react';
+import { Home, IndianRupee, History, MessageSquareWarning, Bot, ShoppingBasket, User as UserIcon } from 'lucide-react';
 
 import type { View, Payment, Complaint, Booking, User } from './types';
 import { ViewType } from './types';
@@ -9,23 +9,21 @@ import HistoryComponent from './components/History';
 import ComplaintsComponent from './components/Complaints';
 import EducationComponent from './components/Education';
 import BookingComponent from './components/Booking';
+import ProfileComponent from './components/Profile';
 import Header from './components/Header';
 import Chatbot from './components/Chatbot';
 import { useTheme } from './context/ThemeContext';
+import { useAuth } from './context/AuthContext';
+import AuthFlow from './components/AuthFlow';
 
 const App: React.FC = () => {
   const { theme } = useTheme();
+  const { isLoggedIn, user } = useAuth();
+  
   const [currentView, setCurrentView] = useState<View>(ViewType.Dashboard);
   const [isChatbotOpen, setChatbotOpen] = useState<boolean>(false);
 
-  // Mock Data
-  const [user, setUser] = useState<User>({
-    name: 'Shyantan Biswas',
-    householdId: 'HH-18B-3A45',
-    hasGreenBadge: true,
-    bookingReminders: true, // User can configure this
-  });
-  
+  // Mock Data (user data is now in AuthContext)
   const [payments, setPayments] = useState<Payment[]>([
     { id: 'TXN789123', date: new Date(2024, 6, 15, 10, 30, 12), amount: 75, status: 'Paid' },
     { id: 'TXN654321', date: new Date(2024, 5, 14, 9, 15, 45), amount: 75, status: 'Paid' },
@@ -33,6 +31,7 @@ const App: React.FC = () => {
   
   const [complaints, setComplaints] = useState<Complaint[]>([
       { id: 'CMPT-001', date: new Date(2024, 6, 10), issue: 'Missed Pickup', status: 'Resolved', details: 'Collector did not arrive on the scheduled day.' },
+      { id: 'CMPT-002', date: new Date(), issue: 'Driver Behavior', status: 'Pending', details: 'The driver was rude.' },
   ]);
 
   const [bookings, setBookings] = useState<Booking[]>([
@@ -47,11 +46,16 @@ const App: React.FC = () => {
     setComplaints([newComplaint, ...complaints]);
   };
 
+  const updateComplaint = (updatedComplaint: Complaint) => {
+    setComplaints(complaints.map(c => c.id === updatedComplaint.id ? updatedComplaint : c));
+  };
+
   const addBooking = (newBooking: Booking) => {
     setBookings([newBooking, ...bookings]);
   }
 
   const renderView = () => {
+    if (!user) return null; // Should not happen if logged in, but good for type safety
     switch (currentView) {
       case ViewType.Dashboard:
         return <Dashboard user={user} bookings={bookings} />;
@@ -60,15 +64,21 @@ const App: React.FC = () => {
       case ViewType.History:
         return <HistoryComponent payments={payments} />;
       case ViewType.Complaints:
-        return <ComplaintsComponent complaints={complaints} addComplaint={addComplaint} />;
+        return <ComplaintsComponent complaints={complaints} addComplaint={addComplaint} updateComplaint={updateComplaint} />;
       case ViewType.Education:
         return <EducationComponent />;
       case ViewType.Booking:
-        return <BookingComponent user={user} setUser={setUser} bookings={bookings} addBooking={addBooking} />;
+        return <BookingComponent bookings={bookings} addBooking={addBooking} />;
+      case ViewType.Profile:
+        return <ProfileComponent />;
       default:
         return <Dashboard user={user} bookings={bookings} />;
     }
   };
+
+  if (!isLoggedIn || !user) {
+    return <AuthFlow />;
+  }
 
   return (
     <div className={`min-h-screen font-sans transition-colors duration-300 ${theme}`}>
@@ -102,7 +112,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ currentView, setCurrentView }) =>
     { view: ViewType.Payment, icon: IndianRupee, label: 'Pay' },
     { view: ViewType.Booking, icon: ShoppingBasket, label: 'Book eCart' },
     { view: ViewType.History, icon: History, label: 'History' },
-    { view: ViewType.Complaints, icon: MessageSquareWarning, label: 'Complaint' },
+    { view: ViewType.Profile, icon: UserIcon, label: 'Profile' },
   ];
 
   return (
@@ -113,7 +123,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ currentView, setCurrentView }) =>
             key={item.label}
             onClick={() => setCurrentView(item.view)}
             className={`flex flex-col items-center justify-center w-full transition-all duration-300 h-full ${
-              currentView === item.view ? 'text-primary-light -translate-y-1' : 'text-secondary-dark dark:text-secondary-dark hover:text-primary-light'
+              currentView === item.view ? 'text-primary-light -translate-y-1' : 'text-secondary dark:text-secondary-dark hover:text-primary-light'
             }`}
           >
             <item.icon size={24} strokeWidth={currentView === item.view ? 2.5 : 2} />

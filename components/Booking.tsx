@@ -1,25 +1,21 @@
 import React, { useState } from 'react';
-import type { Booking, User } from '../types';
-import { Calendar, Clock, Check, Trash2, Bell } from 'lucide-react';
+import type { Booking } from '../types';
+import { Calendar, Clock, Check, Bell, CalendarDays, Box, Leaf } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 interface BookingComponentProps {
   bookings: Booking[];
   addBooking: (booking: Booking) => void;
-  user: User;
-  setUser: React.Dispatch<React.SetStateAction<User>>;
 }
 
-const BookingComponent: React.FC<BookingComponentProps> = ({ bookings, addBooking, user, setUser }) => {
+const BookingComponent: React.FC<BookingComponentProps> = ({ bookings, addBooking }) => {
+    const { user, toggleBookingReminders } = useAuth();
     const [wasteType, setWasteType] = useState<'Event Waste' | 'Bulk Household' | 'Garden Waste'>('Bulk Household');
     const [date, setDate] = useState('');
     const [timeSlot, setTimeSlot] = useState<'Morning' | 'Afternoon'>('Morning');
     const [notes, setNotes] = useState('');
     const [isBooked, setIsBooked] = useState(false);
     const [confirmationMessage, setConfirmationMessage] = useState('');
-
-    const toggleReminders = () => {
-        setUser(prevUser => ({ ...prevUser, bookingReminders: !prevUser.bookingReminders }));
-    };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -39,7 +35,7 @@ const BookingComponent: React.FC<BookingComponentProps> = ({ bookings, addBookin
         addBooking(newBooking);
         setIsBooked(true);
 
-        if (user.bookingReminders) {
+        if (user?.bookingReminders) {
             setConfirmationMessage("Your eCart has been scheduled. We'll send you a reminder a day before collection.");
         } else {
             setConfirmationMessage("Your eCart has been scheduled. You can see the details in your booking history below.");
@@ -61,6 +57,21 @@ const BookingComponent: React.FC<BookingComponentProps> = ({ bookings, addBookin
         return <div className="flex items-center text-xs font-semibold text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/50 px-2 py-1 rounded-full"><Check size={12} className="mr-1"/>{status}</div>
     }
 
+    const getWasteTypeIcon = (wasteType: Booking['wasteType']) => {
+        switch (wasteType) {
+            case 'Event Waste':
+                return <CalendarDays size={24} />;
+            case 'Bulk Household':
+                return <Box size={24} />;
+            case 'Garden Waste':
+                return <Leaf size={24} />;
+            default:
+                return null;
+        }
+    };
+
+    if (!user) return null;
+
     return (
         <div className="space-y-6">
             <h2 className="text-2xl font-bold text-heading-light dark:text-heading-dark">Book a Special Collection</h2>
@@ -74,7 +85,7 @@ const BookingComponent: React.FC<BookingComponentProps> = ({ bookings, addBookin
                     </div>
                 </div>
                 <button 
-                  onClick={toggleReminders} 
+                  onClick={toggleBookingReminders} 
                   className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-light ${user.bookingReminders ? 'bg-primary-light' : 'bg-slate-300 dark:bg-slate-600'}`}
                   aria-pressed={user.bookingReminders}
                 >
@@ -133,7 +144,7 @@ const BookingComponent: React.FC<BookingComponentProps> = ({ bookings, addBookin
                              <li key={booking.id} className="bg-card-light dark:bg-card-dark p-4 rounded-lg shadow-md flex items-start justify-between border border-border-light dark:border-border-dark">
                                 <div className="flex items-center space-x-4">
                                     <div className="bg-primary-light/10 text-primary-light p-3 rounded-full">
-                                        <Trash2 size={24}/>
+                                        {getWasteTypeIcon(booking.wasteType)}
                                     </div>
                                     <div>
                                         <p className="font-bold text-heading-light dark:text-heading-dark">{booking.wasteType}</p>
