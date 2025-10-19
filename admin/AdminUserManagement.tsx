@@ -1,6 +1,6 @@
-import React, { useState, useEffect, Fragment } from 'react';
+import React, { useState, Fragment } from 'react';
 import type { User } from '../types';
-import { Pencil, X, Save, MoreVertical, AlertTriangle, ShieldOff, Shield, Trash2, Eye, EyeOff, Info } from 'lucide-react';
+import { Pencil, Save, AlertTriangle, ShieldOff, Shield, Trash2, Eye, EyeOff, Info } from 'lucide-react';
 import { useData } from '../context/DataContext';
 
 interface AdminUserManagementProps {
@@ -19,46 +19,38 @@ const AdminUserManagement: React.FC<AdminUserManagementProps> = ({ users, update
     const [email, setEmail] = useState('');
     const [warningMessage, setWarningMessage] = useState('');
     const [isPasswordVisible, setIsPasswordVisible] = useState(false);
-    const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
 
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (activeDropdown) {
-                setActiveDropdown(null);
-            }
-        };
-        document.addEventListener('click', handleClickOutside);
-        return () => document.removeEventListener('click', handleClickOutside);
-    }, [activeDropdown]);
+    const getUserInitials = (name: string) => {
+        const nameParts = name.split(' ');
+        if (nameParts.length > 1) {
+            return `${nameParts[0][0]}${nameParts[nameParts.length - 1][0]}`.toUpperCase();
+        }
+        return name.substring(0, 2).toUpperCase();
+    };
 
     const handleEditClick = (user: User) => {
         setEditingUser(user);
         setName(user.name);
         setEmail(user.email || '');
-        setActiveDropdown(null);
     }
 
     const handleViewClick = (user: User) => {
         setViewingUser(user);
         setIsPasswordVisible(false);
-        setActiveDropdown(null);
     }
     
     const handleWarnClick = (user: User) => {
         setWarningUser(user);
         setWarningMessage('');
-        setActiveDropdown(null);
     }
 
     const handleDeleteClick = (user: User) => {
         setDeletingUser(user);
-        setActiveDropdown(null);
     }
 
     const handleBlockToggle = (user: User) => {
         const newStatus = user.status === 'blocked' ? 'active' : 'blocked';
         updateUser({ ...user, status: newStatus });
-        setActiveDropdown(null);
     }
     
     const closeModals = () => {
@@ -106,11 +98,11 @@ const AdminUserManagement: React.FC<AdminUserManagementProps> = ({ users, update
     return (
          <div className="animate-fade-in-up">
             <h1 className="text-3xl font-bold text-heading-light dark:text-heading-dark mb-6">User Management</h1>
-            <div className="bg-card-light dark:bg-card-dark rounded-lg shadow-md overflow-hidden">
-                <table className="w-full text-left">
+            <div className="bg-card-light dark:bg-card-dark rounded-lg shadow-md overflow-x-auto">
+                <table className="w-full text-left min-w-[700px]">
                     <thead className="bg-slate-50 dark:bg-slate-800 border-b border-border-light dark:border-border-dark">
                         <tr>
-                            <th className="p-4 font-semibold text-text-light dark:text-text-dark">Name</th>
+                            <th className="p-4 font-semibold text-text-light dark:text-text-dark">User</th>
                             <th className="p-4 font-semibold text-text-light dark:text-text-dark">Identifier</th>
                             <th className="p-4 font-semibold text-text-light dark:text-text-dark">Status</th>
                             <th className="p-4 font-semibold text-text-light dark:text-text-dark text-center">Actions</th>
@@ -119,36 +111,37 @@ const AdminUserManagement: React.FC<AdminUserManagementProps> = ({ users, update
                     <tbody>
                         {users.map((user, index) => (
                              <tr key={user.householdId} className={`border-b border-border-light dark:border-border-dark ${index % 2 === 0 ? 'bg-transparent' : 'bg-slate-50/50 dark:bg-slate-800/20'}`}>
-                                <td className="p-4 text-heading-light dark:text-heading-dark">{user.name}</td>
+                                <td className="p-4 text-heading-light dark:text-heading-dark">
+                                    <div className="flex items-center space-x-3">
+                                        {user.profilePicture ? (
+                                            <img src={user.profilePicture} alt={user.name} className="w-10 h-10 rounded-full object-cover" />
+                                        ) : (
+                                            <div className="w-10 h-10 rounded-full bg-primary/20 flex-shrink-0 flex items-center justify-center">
+                                                <span className="font-bold text-sm text-primary">{getUserInitials(user.name)}</span>
+                                            </div>
+                                        )}
+                                        <span className="font-medium">{user.name}</span>
+                                    </div>
+                                </td>
                                 <td className="p-4 text-text-light dark:text-text-dark font-mono text-sm">{user.identifier}</td>
                                 <td className="p-4">{getStatusChip(user.status)}</td>
                                 <td className="p-4 text-center">
-                                    <div className="relative inline-block text-left">
-                                        <button onClick={(e) => { e.stopPropagation(); setActiveDropdown(user.householdId)}} className="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-primary rounded-full transition">
-                                            <MoreVertical size={18} />
+                                    <div className="flex justify-center items-center space-x-1">
+                                         <button onClick={() => handleViewClick(user)} className="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-blue-500 rounded-full transition" title="View Details">
+                                            <Info size={18} />
                                         </button>
-                                        {activeDropdown === user.householdId && (
-                                            <div className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-card-light dark:bg-card-dark ring-1 ring-black dark:ring-slate-700 ring-opacity-5 focus:outline-none z-10">
-                                                <div className="py-1">
-                                                     <button onClick={() => handleViewClick(user)} className="w-full text-left flex items-center px-4 py-2 text-sm text-text-light dark:text-text-dark hover:bg-slate-100 dark:hover:bg-slate-700">
-                                                        <Info size={14} className="mr-3" /> View Details
-                                                    </button>
-                                                    <button onClick={() => handleEditClick(user)} className="w-full text-left flex items-center px-4 py-2 text-sm text-text-light dark:text-text-dark hover:bg-slate-100 dark:hover:bg-slate-700">
-                                                        <Pencil size={14} className="mr-3" /> Edit
-                                                    </button>
-                                                    <button onClick={() => handleWarnClick(user)} className="w-full text-left flex items-center px-4 py-2 text-sm text-text-light dark:text-text-dark hover:bg-slate-100 dark:hover:bg-slate-700">
-                                                        <AlertTriangle size={14} className="mr-3 text-warning" /> Warn
-                                                    </button>
-                                                    <button onClick={() => handleBlockToggle(user)} className="w-full text-left flex items-center px-4 py-2 text-sm text-text-light dark:text-text-dark hover:bg-slate-100 dark:hover:bg-slate-700">
-                                                        {user.status === 'blocked' ? <><Shield size={14} className="mr-3 text-success" /> Unblock</> : <><ShieldOff size={14} className="mr-3 text-red-500"/> Block</>}
-                                                    </button>
-                                                    <div className="border-t border-border-light dark:border-border-dark my-1"></div>
-                                                    <button onClick={() => handleDeleteClick(user)} className="w-full text-left flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-500/10">
-                                                        <Trash2 size={14} className="mr-3" /> Delete
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        )}
+                                        <button onClick={() => handleEditClick(user)} className="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-primary rounded-full transition" title="Edit User">
+                                            <Pencil size={18} />
+                                        </button>
+                                        <button onClick={() => handleWarnClick(user)} className="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-amber-500 rounded-full transition" title="Warn User">
+                                            <AlertTriangle size={18} />
+                                        </button>
+                                        <button onClick={() => handleBlockToggle(user)} className="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition" title={user.status === 'blocked' ? 'Unblock User' : 'Block User'}>
+                                            {user.status === 'blocked' ? <Shield size={18} className="text-success" /> : <ShieldOff size={18} className="text-red-500" />}
+                                        </button>
+                                        <button onClick={() => handleDeleteClick(user)} className="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-red-600 rounded-full transition" title="Delete User">
+                                            <Trash2 size={18} />
+                                        </button>
                                     </div>
                                 </td>
                             </tr>

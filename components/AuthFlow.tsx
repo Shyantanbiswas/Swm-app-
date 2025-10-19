@@ -16,6 +16,7 @@ const AuthFlow: React.FC<AuthFlowProps> = ({ onBack }) => {
     const [name, setName] = useState('');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [rememberMe, setRememberMe] = useState(true);
 
     const auth = useAuth();
     
@@ -25,7 +26,7 @@ const AuthFlow: React.FC<AuthFlowProps> = ({ onBack }) => {
         e.preventDefault();
         setError('');
         setIsLoading(true);
-        const result = await auth.login(identifier, password);
+        const result = await auth.login(identifier, password, rememberMe);
         setIsLoading(false);
         if (!result.success) {
             setError(result.message || 'Login failed. Please try again.');
@@ -53,6 +54,7 @@ const AuthFlow: React.FC<AuthFlowProps> = ({ onBack }) => {
         setConfirmPassword('');
         setName('');
         setError('');
+        setRememberMe(true);
     }
 
     return (
@@ -84,6 +86,18 @@ const AuthFlow: React.FC<AuthFlowProps> = ({ onBack }) => {
                             <div className="relative">
                                 <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
                                 <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" className="w-full p-3 pl-12 border border-border-light dark:border-border-dark bg-slate-100 dark:bg-slate-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"/>
+                            </div>
+                            <div className="flex items-center">
+                                <input
+                                    id="remember-me"
+                                    type="checkbox"
+                                    checked={rememberMe}
+                                    onChange={(e) => setRememberMe(e.target.checked)}
+                                    className="h-4 w-4 rounded border-slate-300 dark:border-slate-600 text-primary focus:ring-primary bg-slate-100 dark:bg-slate-700"
+                                />
+                                <label htmlFor="remember-me" className="ml-2 block text-sm text-text-light dark:text-text-dark">
+                                    Remember me
+                                </label>
                             </div>
                             <button type="submit" disabled={isLoading} className="w-full bg-gradient-to-r from-primary to-accent text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center text-lg shadow-lg hover:shadow-glow-primary transition-all transform hover:scale-105 disabled:opacity-50">
                                 {isLoading ? <Loader2 className="animate-spin" /> : 'Login'}

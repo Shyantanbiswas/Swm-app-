@@ -13,7 +13,7 @@ interface LoginResult {
 interface AuthContextType {
   isLoggedIn: boolean;
   user: User | null;
-  login: (identifier: string, password?: string) => Promise<LoginResult>;
+  login: (identifier: string, password?: string, rememberMe?: boolean) => Promise<LoginResult>;
   signup: (name: string, identifier: string, password?: string) => Promise<LoginResult>;
   loginAsAdmin: (identifier: string) => Promise<LoginResult>;
   logout: () => void;
@@ -33,17 +33,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const isLoggedIn = !!user;
 
   useEffect(() => {
-    const savedUserId = localStorage.getItem(USER_ID_STORAGE_KEY);
+    let savedUserId = localStorage.getItem(USER_ID_STORAGE_KEY);
+    if (!savedUserId) {
+        savedUserId = sessionStorage.getItem(USER_ID_STORAGE_KEY);
+    }
+
     if (savedUserId) {
         if (users.some(u => u.householdId === savedUserId)) {
             setLoggedInUserId(savedUserId);
         } else {
             localStorage.removeItem(USER_ID_STORAGE_KEY);
+            sessionStorage.removeItem(USER_ID_STORAGE_KEY);
         }
     }
   }, [users]);
 
-  const login = async (identifier: string, password?: string): Promise<LoginResult> => {
+  const login = async (identifier: string, password?: string, rememberMe?: boolean): Promise<LoginResult> => {
     const isEmail = identifier.includes('@');
     const normalizedIdentifier = isEmail ? identifier.toLowerCase() : identifier.replace(/[^0-9]/g, '');
 
@@ -59,7 +64,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return { success: false, message: 'Invalid password.' };
     }
     
-    localStorage.setItem(USER_ID_STORAGE_KEY, existingUser.householdId);
+    if (rememberMe) {
+        localStorage.setItem(USER_ID_STORAGE_KEY, existingUser.householdId);
+    } else {
+        sessionStorage.setItem(USER_ID_STORAGE_KEY, existingUser.householdId);
+    }
     setLoggedInUserId(existingUser.householdId);
     return { success: true, user: existingUser };
   }
@@ -86,7 +95,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
     addUser(newUser);
 
-    localStorage.setItem(USER_ID_STORAGE_KEY, householdId);
+    sessionStorage.setItem(USER_ID_STORAGE_KEY, householdId);
     setLoggedInUserId(householdId);
     return { success: true, user: newUser };
   }
@@ -109,6 +118,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const logout = () => {
     localStorage.removeItem(USER_ID_STORAGE_KEY);
+    sessionStorage.removeItem(USER_ID_STORAGE_KEY);
     localStorage.removeItem('isAdminMode');
     localStorage.removeItem('isAdminLoggedIn');
     setLoggedInUserId(null);
