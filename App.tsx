@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Home, IndianRupee, History, MessageSquareWarning, Bot, ShoppingBasket, User as UserIcon } from 'lucide-react';
 
-import type { View, Payment, Complaint, Booking, User } from './types';
+import type { View } from './types';
 import { ViewType } from './types';
 import Dashboard from './components/Dashboard';
 import PaymentComponent from './components/Payment';
@@ -12,91 +12,139 @@ import BookingComponent from './components/Booking';
 import ProfileComponent from './components/Profile';
 import Header from './components/Header';
 import Chatbot from './components/Chatbot';
+import BroadcastModal from './components/BroadcastModal';
+import WarningModal from './components/WarningModal';
 import { useTheme } from './context/ThemeContext';
 import { useAuth } from './context/AuthContext';
+import { useData } from './context/DataContext';
 import AuthFlow from './components/AuthFlow';
+import AdminApp from './admin/AdminApp';
+import LoginSelector from './components/LoginSelector';
+import AdminAuthFlow from './components/AdminAuthFlow';
 
-const App: React.FC = () => {
-  const { theme } = useTheme();
-  const { isLoggedIn, user } = useAuth();
-  
+// This is the main user-facing application component
+const UserApp: React.FC = () => {
+  const { user } = useAuth();
+  const { payments, complaints, bookings, addComplaint, updateComplaint, broadcastMessage, clearUserWarning } = useData();
   const [currentView, setCurrentView] = useState<View>(ViewType.Dashboard);
   const [isChatbotOpen, setChatbotOpen] = useState<boolean>(false);
+  const [isBroadcastVisible, setBroadcastVisible] = useState(false);
+  const [isWarningVisible, setWarningVisible] = useState(false);
 
-  // Mock Data (user data is now in AuthContext)
-  const [payments, setPayments] = useState<Payment[]>([
-    { id: 'TXN789123', date: new Date(2024, 6, 15, 10, 30, 12), amount: 75, status: 'Paid' },
-    { id: 'TXN654321', date: new Date(2024, 5, 14, 9, 15, 45), amount: 75, status: 'Paid' },
-  ]);
+  // Memoize filtered data for the current user to prevent re-renders
+  const userPayments = useMemo(() => payments.filter(p => p.householdId === user?.householdId), [payments, user]);
+  const userComplaints = useMemo(() => complaints.filter(c => c.householdId === user?.householdId), [complaints, user]);
+  const userBookings = useMemo(() => bookings.filter(b => b.householdId === user?.householdId), [bookings, user]);
+
+  useEffect(() => {
+    if (broadcastMessage && sessionStorage.getItem('lastDismissedBroadcast') !== broadcastMessage) {
+        setBroadcastVisible(true);
+    }
+    if (user?.status === 'warned') {
+        setWarningVisible(true);
+    }
+  }, [broadcastMessage, user]);
+
+  const handleDismissBroadcast = () => {
+    setBroadcastVisible(false);
+    if(broadcastMessage) {
+        sessionStorage.setItem('lastDismissedBroadcast', broadcastMessage);
+    }
+  };
   
-  const [complaints, setComplaints] = useState<Complaint[]>([
-      { id: 'CMPT-001', date: new Date(2024, 6, 10), issue: 'Missed Pickup', status: 'Resolved', details: 'Collector did not arrive on the scheduled day.' },
-      { id: 'CMPT-002', date: new Date(), issue: 'Driver Behavior', status: 'Pending', details: 'The driver was rude.' },
-  ]);
-
-  const [bookings, setBookings] = useState<Booking[]>([
-      { id: 'BK-001', date: '2024-07-28', timeSlot: 'Morning', wasteType: 'Garden Waste', status: 'Completed' }
-  ]);
-
-  const addPayment = (newPayment: Payment) => {
-    setPayments([newPayment, ...payments]);
-  };
-
-  const addComplaint = (newComplaint: Complaint) => {
-    setComplaints([newComplaint, ...complaints]);
-  };
-
-  const updateComplaint = (updatedComplaint: Complaint) => {
-    setComplaints(complaints.map(c => c.id === updatedComplaint.id ? updatedComplaint : c));
-  };
-
-  const addBooking = (newBooking: Booking) => {
-    setBookings([newBooking, ...bookings]);
+  const handleAcknowledgeWarning = () => {
+    if (user) {
+        clearUserWarning(user.householdId);
+    }
+    setWarningVisible(false);
   }
 
   const renderView = () => {
-    if (!user) return null; // Should not happen if logged in, but good for type safety
+    if (!user) return null;
     switch (currentView) {
       case ViewType.Dashboard:
-        return <Dashboard user={user} bookings={bookings} />;
+        return <Dashboard user={user} bookings={userBookings} />;
       case ViewType.Payment:
-        return <PaymentComponent addPayment={addPayment} setCurrentView={setCurrentView} />;
+        return <PaymentComponent setCurrentView={setCurrentView} />;
       case ViewType.History:
-        return <HistoryComponent payments={payments} />;
+        return <HistoryComponent payments={userPayments} />;
       case ViewType.Complaints:
-        return <ComplaintsComponent complaints={complaints} addComplaint={addComplaint} updateComplaint={updateComplaint} />;
+        return <ComplaintsComponent complaints={userComplaints} addComplaint={addComplaint} updateComplaint={updateComplaint} />;
       case ViewType.Education:
         return <EducationComponent />;
       case ViewType.Booking:
-        return <BookingComponent bookings={bookings} addBooking={addBooking} />;
+        return <BookingComponent />;
       case ViewType.Profile:
         return <ProfileComponent />;
       default:
-        return <Dashboard user={user} bookings={bookings} />;
+        return <Dashboard user={user} bookings={userBookings} />;
     }
   };
 
+  return (
+    <div className="w-full max-w-lg mx-auto bg-card-light dark:bg-card-dark shadow-2xl flex flex-col h-screen">
+      <Header />
+      <main className="flex-grow p-4 overflow-y-auto pb-24 bg-transparent animate-fade-in">
+        {renderView()}
+      </main>
+      <BottomNav currentView={currentView} setCurrentView={setCurrentView} />
+      <button
+        onClick={() => setChatbotOpen(true)}
+        className="fixed bottom-24 right-4 bg-gradient-to-r from-primary to-accent text-white p-4 rounded-full shadow-lg hover:shadow-glow-primary transition-all transform hover:scale-110 z-30 animate-pulse-glow"
+        aria-label="Open AI Chatbot"
+      >
+        <Bot size={28} />
+      </button>
+      {isChatbotOpen && <Chatbot onClose={() => setChatbotOpen(false)} />}
+      {isBroadcastVisible && broadcastMessage && (
+          <BroadcastModal message={broadcastMessage} onDismiss={handleDismissBroadcast} />
+      )}
+      {isWarningVisible && user?.warningMessage && (
+          <WarningModal message={user.warningMessage} onAcknowledge={handleAcknowledgeWarning} />
+      )}
+    </div>
+  );
+};
+
+
+const App: React.FC = () => {
+  const { theme } = useTheme();
+  const { isLoggedIn, user, logout } = useAuth();
+  const [loginMode, setLoginMode] = useState<'selector' | 'user' | 'admin'>('selector');
+  
+  // States are derived from localStorage on each render.
+  const isAdminMode = localStorage.getItem('isAdminMode') === 'true';
+  const isAdminLoggedIn = localStorage.getItem('isAdminLoggedIn') === 'true';
+
+  // The admin user is hardcoded for this demo
+  const isAdmin = user?.identifier === '9635929052';
+  
+  const handleAdminLogout = () => {
+      logout(); // Full logout to return to selector
+      setLoginMode('selector');
+  }
+
+  // First, check for user login status
   if (!isLoggedIn || !user) {
-    return <AuthFlow />;
+    switch (loginMode) {
+        case 'user':
+            return <AuthFlow onBack={() => setLoginMode('selector')} />;
+        case 'admin':
+            return <AdminAuthFlow onBack={() => setLoginMode('selector')} />;
+        case 'selector':
+        default:
+            return <LoginSelector onSelectMode={setLoginMode} />;
+    }
+  }
+  
+  // If user is logged in, check if we should be in admin mode
+  if (isAdminMode && isAdminLoggedIn && isAdmin) {
+      return <AdminApp handleAdminLogout={handleAdminLogout} />;
   }
 
   return (
     <div className={`min-h-screen font-sans transition-colors duration-300 ${theme} bg-gradient-to-b from-slate-50 to-slate-100 dark:from-background-dark dark:to-slate-900`}>
-      <div className="w-full max-w-lg mx-auto bg-card-light dark:bg-card-dark shadow-2xl flex flex-col h-screen">
-        <Header user={user} />
-        <main className="flex-grow p-4 overflow-y-auto pb-24 bg-transparent animate-fade-in">
-          {renderView()}
-        </main>
-        <BottomNav currentView={currentView} setCurrentView={setCurrentView} />
-        <button
-          onClick={() => setChatbotOpen(true)}
-          className="fixed bottom-24 right-4 bg-gradient-to-r from-primary to-accent text-white p-4 rounded-full shadow-lg hover:shadow-glow-primary transition-all transform hover:scale-110 z-30 animate-pulse-glow"
-          aria-label="Open AI Chatbot"
-        >
-          <Bot size={28} />
-        </button>
-        {isChatbotOpen && <Chatbot onClose={() => setChatbotOpen(false)} />}
-      </div>
+       <UserApp />
     </div>
   );
 };

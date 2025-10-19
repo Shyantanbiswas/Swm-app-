@@ -1,16 +1,11 @@
 import React from 'react';
-import type { User } from '../types';
-import { ShieldCheck, Recycle, Sun, Moon, LogOut } from 'lucide-react';
+import { Recycle, Sun, Moon, LogOut } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 
-interface HeaderProps {
-  user: User;
-}
-
-const Header: React.FC<HeaderProps> = ({ user }) => {
+const Header: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
 
   const getUserInitials = (name: string) => {
     const nameParts = name.split(' ');
@@ -20,6 +15,7 @@ const Header: React.FC<HeaderProps> = ({ user }) => {
     return name.substring(0, 2).toUpperCase();
   };
 
+  if (!user) return null;
 
   return (
     <header className="bg-gradient-to-r from-primary to-accent text-white p-4 shadow-lg w-full max-w-lg mx-auto sticky top-0 z-10">

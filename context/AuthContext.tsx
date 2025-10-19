@@ -1,93 +1,153 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 import type { User } from '../types';
+import { useData } from './DataContext';
 
-const USER_STORAGE_KEY = 'ecotrack-user';
+const USER_ID_STORAGE_KEY = 'ecotrack-user-id';
+
+interface LoginResult {
+    success: boolean;
+    message?: string;
+    user?: User;
+}
 
 interface AuthContextType {
   isLoggedIn: boolean;
   user: User | null;
-  login: (mobileNumber: string) => void;
+  login: (identifier: string, password?: string) => Promise<LoginResult>;
+  signup: (name: string, identifier: string, password?: string) => Promise<LoginResult>;
+  loginAsAdmin: (identifier: string) => Promise<LoginResult>;
   logout: () => void;
   toggleBookingReminders: () => void;
   updateUserName: (newName: string) => void;
+  updateUserEmail: (newEmail: string) => void;
   updateUserProfilePicture: (pictureDataUrl: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
+  const [loggedInUserId, setLoggedInUserId] = useState<string | null>(null);
+  const { users, addUser, updateUser } = useData();
+
+  const user = users.find(u => u.householdId === loggedInUserId) || null;
+  const isLoggedIn = !!user;
 
   useEffect(() => {
-    // On initial load, check for a saved user session
-    try {
-      const savedUserJson = localStorage.getItem(USER_STORAGE_KEY);
-      if (savedUserJson) {
-        const savedUser = JSON.parse(savedUserJson);
-        setUser(savedUser);
-        setIsLoggedIn(true);
-      }
-    } catch (error) {
-      console.error("Failed to parse user from localStorage", error);
-      localStorage.removeItem(USER_STORAGE_KEY);
+    const savedUserId = localStorage.getItem(USER_ID_STORAGE_KEY);
+    if (savedUserId) {
+        if (users.some(u => u.householdId === savedUserId)) {
+            setLoggedInUserId(savedUserId);
+        } else {
+            localStorage.removeItem(USER_ID_STORAGE_KEY);
+        }
     }
-  }, []);
+  }, [users]);
 
-  const login = (mobileNumber: string) => {
-    // In a real app, this would involve an API call to fetch user data
-    const mockUser: User = {
-        name: 'Shyantan Biswas', // This would be fetched based on mobile number
-        householdId: `HH-${mobileNumber.slice(-4)}-${mobileNumber.slice(0,2)}`,
-        hasGreenBadge: true,
-        bookingReminders: true, // Default to true on login
+  const login = async (identifier: string, password?: string): Promise<LoginResult> => {
+    const isEmail = identifier.includes('@');
+    const normalizedIdentifier = isEmail ? identifier.toLowerCase() : identifier.replace(/[^0-9]/g, '');
+
+    const existingUser = users.find(u => u.identifier === normalizedIdentifier);
+
+    if (!existingUser) {
+        return { success: false, message: 'No account found with this identifier.' };
+    }
+    if (existingUser.status === 'blocked') {
+        return { success: false, message: 'Your account has been blocked. Please contact support.' };
+    }
+    if (existingUser.password !== password) {
+        return { success: false, message: 'Invalid password.' };
+    }
+    
+    localStorage.setItem(USER_ID_STORAGE_KEY, existingUser.householdId);
+    setLoggedInUserId(existingUser.householdId);
+    return { success: true, user: existingUser };
+  }
+  
+  const signup = async (name: string, identifier: string, password?: string): Promise<LoginResult> => {
+    const isEmail = identifier.includes('@');
+    const normalizedIdentifier = isEmail ? identifier.toLowerCase() : identifier.replace(/[^0-9]/g, '');
+
+    if (users.some(u => u.identifier === normalizedIdentifier)) {
+        return { success: false, message: 'An account with this identifier already exists.' };
+    }
+
+    const householdId = `HH-${normalizedIdentifier.slice(0, 4).toUpperCase()}-${Date.now().toString().slice(-4)}`;
+    const newUser: User = {
+        name,
+        householdId,
+        identifier: normalizedIdentifier,
+        password,
+        status: 'active',
+        hasGreenBadge: false,
+        bookingReminders: true,
         profilePicture: '',
+        email: isEmail ? normalizedIdentifier : '',
     };
-    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(mockUser));
-    setUser(mockUser);
-    setIsLoggedIn(true);
+    addUser(newUser);
+
+    localStorage.setItem(USER_ID_STORAGE_KEY, householdId);
+    setLoggedInUserId(householdId);
+    return { success: true, user: newUser };
+  }
+
+  const loginAsAdmin = async (identifier: string): Promise<LoginResult> => {
+      const existingUser = users.find(u => u.identifier === identifier);
+      if (!existingUser) {
+           return { success: false, message: 'Admin account not found.' };
+      }
+      if (existingUser.status === 'blocked') {
+        return { success: false, message: 'Your account has been blocked. Please contact support.' };
+      }
+      
+      localStorage.setItem(USER_ID_STORAGE_KEY, existingUser.householdId);
+      localStorage.setItem('isAdminMode', 'true');
+      localStorage.setItem('isAdminLoggedIn', 'true');
+      setLoggedInUserId(existingUser.householdId);
+      return { success: true };
   };
 
   const logout = () => {
-    localStorage.removeItem(USER_STORAGE_KEY);
-    setUser(null);
-    setIsLoggedIn(false);
+    localStorage.removeItem(USER_ID_STORAGE_KEY);
+    localStorage.removeItem('isAdminMode');
+    localStorage.removeItem('isAdminLoggedIn');
+    setLoggedInUserId(null);
   };
 
   const updateUserData = (updatedUser: User) => {
-    setUser(updatedUser);
-    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(updatedUser));
+    updateUser(updatedUser);
   };
   
   const toggleBookingReminders = () => {
-    setUser(prevUser => {
-        if (!prevUser) return null;
-        const updatedUser = { ...prevUser, bookingReminders: !prevUser.bookingReminders };
+    if(user) {
+        const updatedUser = { ...user, bookingReminders: !user.bookingReminders };
         updateUserData(updatedUser);
-        return updatedUser;
-    });
+    }
   };
 
   const updateUserName = (newName: string) => {
-    setUser(prevUser => {
-      if (!prevUser) return null;
-      const updatedUser = { ...prevUser, name: newName };
+    if(user) {
+      const updatedUser = { ...user, name: newName };
       updateUserData(updatedUser);
-      return updatedUser;
-    });
+    }
+  };
+
+   const updateUserEmail = (newEmail: string) => {
+    if(user) {
+      const updatedUser = { ...user, email: newEmail };
+      updateUserData(updatedUser);
+    }
   };
 
   const updateUserProfilePicture = (pictureDataUrl: string) => {
-    setUser(prevUser => {
-        if (!prevUser) return null;
-        const updatedUser = { ...prevUser, profilePicture: pictureDataUrl };
+     if(user) {
+        const updatedUser = { ...user, profilePicture: pictureDataUrl };
         updateUserData(updatedUser);
-        return updatedUser;
-    });
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ isLoggedIn, user, login, logout, toggleBookingReminders, updateUserName, updateUserProfilePicture }}>
+    <AuthContext.Provider value={{ isLoggedIn, user, login, signup, loginAsAdmin, logout, toggleBookingReminders, updateUserName, updateUserEmail, updateUserProfilePicture }}>
       {children}
     </AuthContext.Provider>
   );

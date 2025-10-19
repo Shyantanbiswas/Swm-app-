@@ -1,6 +1,6 @@
 import React from 'react';
 import type { Payment } from '../types';
-import { FileText } from 'lucide-react';
+import { FileText, Clock, CheckCircle, XCircle } from 'lucide-react';
 import jsPDF from 'jspdf';
 import { NGO_NAME } from '../constants';
 
@@ -34,6 +34,35 @@ const HistoryComponent: React.FC<HistoryComponentProps> = ({ payments }) => {
         doc.line(20, 90, 190, 90);
         doc.save(`Receipt-${payment.id}.pdf`);
     };
+    
+    const getStatusInfo = (status: Payment['status']) => {
+        switch(status) {
+            case 'Paid':
+                return { 
+                    icon: <CheckCircle className="text-success" size={20}/>, 
+                    borderColor: 'border-success',
+                    textColor: 'text-success'
+                };
+            case 'Pending Verification':
+                return { 
+                    icon: <Clock className="text-warning" size={20}/>,
+                    borderColor: 'border-warning',
+                    textColor: 'text-warning'
+                };
+            case 'Rejected':
+                return { 
+                    icon: <XCircle className="text-red-500" size={20}/>,
+                    borderColor: 'border-red-500',
+                    textColor: 'text-red-500'
+                };
+            default:
+                return {
+                    icon: <Clock size={20}/>,
+                    borderColor: 'border-slate-400',
+                    textColor: 'text-slate-400'
+                };
+        }
+    };
 
     return (
         <div className="animate-fade-in-up">
@@ -46,22 +75,30 @@ const HistoryComponent: React.FC<HistoryComponentProps> = ({ payments }) => {
                 </div>
             ) : (
                 <ul className="space-y-3">
-                    {payments.map((payment, index) => (
-                        <li 
-                            key={payment.id} 
-                            className="bg-card-light dark:bg-card-dark p-4 rounded-lg shadow-md flex justify-between items-center border-l-4 border-primary transition-all hover:shadow-lg hover:border-accent animate-fade-in-up"
-                            style={{ animationDelay: `${index * 75}ms` }}
-                        >
-                            <div>
-                                <p className="font-bold text-primary text-lg">₹{payment.amount.toFixed(2)}</p>
-                                <p className="text-sm text-text-light dark:text-text-dark">{payment.date.toLocaleDateString()}</p>
-                                <p className="text-xs text-slate-400 dark:text-slate-500 font-mono">{payment.id}</p>
-                            </div>
-                            <button onClick={() => generatePDF(payment)} className="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-primary rounded-full transition">
-                                <FileText size={24} />
-                            </button>
-                        </li>
-                    ))}
+                    {payments.map((payment, index) => {
+                        const { icon, borderColor, textColor } = getStatusInfo(payment.status);
+                        return (
+                            <li 
+                                key={payment.id} 
+                                className={`bg-card-light dark:bg-card-dark p-4 rounded-lg shadow-md flex justify-between items-center border-l-4 ${borderColor} transition-all hover:shadow-lg animate-fade-in-up`}
+                                style={{ animationDelay: `${index * 75}ms` }}
+                            >
+                                <div className="flex items-center space-x-4">
+                                    {icon}
+                                    <div>
+                                        <p className={`font-bold text-lg ${textColor}`}>₹{payment.amount.toFixed(2)}</p>
+                                        <p className="text-sm text-text-light dark:text-text-dark">{payment.date.toLocaleDateString()}</p>
+                                        <p className="text-xs text-slate-400 dark:text-slate-500 font-mono">{payment.status}</p>
+                                    </div>
+                                </div>
+                                {payment.status === 'Paid' && (
+                                     <button onClick={() => generatePDF(payment)} className="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-primary rounded-full transition">
+                                        <FileText size={24} />
+                                    </button>
+                                )}
+                            </li>
+                        );
+                    })}
                 </ul>
             )}
         </div>

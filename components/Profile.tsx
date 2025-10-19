@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { User, Shield, Save, CheckCircle, Camera, Upload, X } from 'lucide-react';
+import { User, Shield, Save, CheckCircle, Camera, Upload, X, Mail } from 'lucide-react';
 
 interface CameraModalProps {
     onPictureTaken: (dataUrl: string) => void;
@@ -82,8 +82,9 @@ const CameraModal: React.FC<CameraModalProps> = ({ onPictureTaken, onClose }) =>
 
 
 const ProfileComponent: React.FC = () => {
-    const { user, updateUserName, updateUserProfilePicture } = useAuth();
+    const { user, updateUserName, updateUserProfilePicture, updateUserEmail } = useAuth();
     const [name, setName] = useState(user?.name || '');
+    const [email, setEmail] = useState(user?.email || '');
     const [isSaved, setIsSaved] = useState(false);
     const [isCameraOpen, setIsCameraOpen] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -91,15 +92,25 @@ const ProfileComponent: React.FC = () => {
     useEffect(() => {
         if (user) {
             setName(user.name);
+            setEmail(user.email || '');
         }
     }, [user]);
 
     const handleSave = (e: React.FormEvent) => {
         e.preventDefault();
+        let changed = false;
         if (name.trim() && user && name.trim() !== user.name) {
             updateUserName(name.trim());
+            changed = true;
+        }
+        if (user && email.trim() !== (user.email || '')) {
+            updateUserEmail(email.trim());
+            changed = true;
+        }
+
+        if (changed) {
             setIsSaved(true);
-            setTimeout(() => setIsSaved(false), 2000); // Hide message after 2 seconds
+            setTimeout(() => setIsSaved(false), 2000);
         }
     };
 
@@ -125,6 +136,8 @@ const ProfileComponent: React.FC = () => {
     if (!user) {
         return <div>Loading profile...</div>;
     }
+    
+    const hasChanges = (name.trim() && name.trim() !== user.name) || (email.trim() !== (user.email || ''));
 
     return (
         <div className="space-y-6">
@@ -182,6 +195,20 @@ const ProfileComponent: React.FC = () => {
                             />
                         </div>
                     </div>
+                     <div>
+                        <label htmlFor="email" className="block text-sm font-medium text-text-light dark:text-text-dark mb-1">Email Address</label>
+                        <div className="relative">
+                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                            <input
+                                id="email"
+                                type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                placeholder="your.email@example.com"
+                                className="w-full p-3 pl-10 border border-border-light dark:border-border-dark bg-background-light dark:bg-slate-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                            />
+                        </div>
+                    </div>
                     <div className="flex items-center justify-end space-x-4">
                          {isSaved && (
                             <div className="flex items-center text-green-600 dark:text-green-400 animate-fade-in" role="status">
@@ -191,7 +218,7 @@ const ProfileComponent: React.FC = () => {
                         )}
                         <button
                             type="submit"
-                            disabled={!name.trim() || name.trim() === user.name}
+                            disabled={!hasChanges}
                             className="bg-gradient-to-r from-primary to-accent text-white font-bold py-2 px-6 rounded-lg flex items-center justify-center shadow-lg hover:shadow-glow-primary transition-all transform hover:scale-105 disabled:from-slate-400 disabled:to-slate-500 disabled:shadow-none disabled:scale-100 disabled:cursor-not-allowed"
                         >
                             <Save className="mr-2" size={18} /> Save Changes

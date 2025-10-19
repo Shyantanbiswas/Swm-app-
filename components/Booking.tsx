@@ -2,14 +2,12 @@ import React, { useState } from 'react';
 import type { Booking } from '../types';
 import { Calendar, Clock, Check, Bell, CalendarDays, Box, Leaf } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useData } from '../context/DataContext';
+import { SUPPORT_EMAIL, PAYMENT_AMOUNT } from '../constants';
 
-interface BookingComponentProps {
-  bookings: Booking[];
-  addBooking: (booking: Booking) => void;
-}
-
-const BookingComponent: React.FC<BookingComponentProps> = ({ bookings, addBooking }) => {
+const BookingComponent: React.FC = () => {
     const { user, toggleBookingReminders } = useAuth();
+    const { bookings, addBooking } = useData();
     const [wasteType, setWasteType] = useState<'Event Waste' | 'Bulk Household' | 'Garden Waste'>('Bulk Household');
     const [date, setDate] = useState('');
     const [timeSlot, setTimeSlot] = useState<'Morning' | 'Afternoon'>('Morning');
@@ -19,13 +17,14 @@ const BookingComponent: React.FC<BookingComponentProps> = ({ bookings, addBookin
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if(!date) {
+        if(!date || !user) {
             alert("Please select a date.");
             return;
         }
 
         const newBooking: Booking = {
             id: `BK-${Date.now()}`,
+            householdId: user.householdId,
             date,
             timeSlot,
             wasteType,
@@ -33,6 +32,36 @@ const BookingComponent: React.FC<BookingComponentProps> = ({ bookings, addBookin
             status: 'Scheduled',
         };
         addBooking(newBooking);
+
+        // Trigger email notification
+        const subject = `New eCart Booking Confirmation: ${newBooking.id}`;
+        const body = `A new special collection has been booked by a user.
+
+Booking Details:
+----------------
+Booking ID: ${newBooking.id}
+Date: ${new Date(newBooking.date).toLocaleDateString(undefined, { timeZone: 'UTC' })}
+Time Slot: ${newBooking.timeSlot}
+Waste Type: ${newBooking.wasteType}
+Notes: ${newBooking.notes || 'N/A'}
+
+User Details:
+-------------
+Name: ${user.name}
+Household ID: ${user.householdId}
+Email: ${user.email || 'Not provided in profile'}
+
+Payment Details:
+----------------
+The standard collection fee is ₹${PAYMENT_AMOUNT}.
+Please coordinate with the user for payment confirmation.
+
+Thank you,
+EcoTrack App System
+        `;
+        const mailtoLink = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body.trim())}`;
+        window.open(mailtoLink, '_blank');
+
         setIsBooked(true);
 
         if (user?.bookingReminders) {
@@ -71,6 +100,8 @@ const BookingComponent: React.FC<BookingComponentProps> = ({ bookings, addBookin
     };
 
     if (!user) return null;
+    
+    const userBookings = bookings.filter(b => b.householdId === user.householdId);
 
     return (
         <div className="space-y-6">
@@ -136,11 +167,11 @@ const BookingComponent: React.FC<BookingComponentProps> = ({ bookings, addBookin
 
             <div className="animate-fade-in-up" style={{ animationDelay: '300ms' }}>
                 <h3 className="text-xl font-semibold text-heading-light dark:text-heading-dark mb-3">Booking History</h3>
-                {bookings.length === 0 ? (
+                {userBookings.length === 0 ? (
                     <p className="text-text-light dark:text-text-dark text-center py-4">No special bookings made yet.</p>
                 ) : (
                     <ul className="space-y-3">
-                        {bookings.slice().reverse().map((booking, index) => (
+                        {userBookings.slice().reverse().map((booking, index) => (
                              <li key={booking.id} className="bg-card-light dark:bg-card-dark p-4 rounded-lg shadow-md flex items-start justify-between border border-border-light dark:border-border-dark animate-fade-in-up" style={{ animationDelay: `${index * 75}ms` }}>
                                 <div className="flex items-center space-x-4">
                                     <div className="bg-gradient-to-br from-primary/10 to-accent/10 text-primary p-3 rounded-full">

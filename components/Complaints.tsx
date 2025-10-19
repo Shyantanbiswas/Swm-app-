@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { Complaint } from '../types';
 import { PlusCircle, Paperclip, Pencil } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 interface ComplaintsComponentProps {
   complaints: Complaint[];
@@ -9,6 +10,7 @@ interface ComplaintsComponentProps {
 }
 
 const ComplaintsComponent: React.FC<ComplaintsComponentProps> = ({ complaints, addComplaint, updateComplaint }) => {
+  const { user } = useAuth();
   const [showForm, setShowForm] = useState(false);
   const [editingComplaintId, setEditingComplaintId] = useState<string | null>(null);
   const [issue, setIssue] = useState('');
@@ -60,7 +62,7 @@ const ComplaintsComponent: React.FC<ComplaintsComponentProps> = ({ complaints, a
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!issue || !details) return;
+    if (!issue || !details || !user) return;
 
     if (editingComplaintId) {
       const originalComplaint = complaints.find(c => c.id === editingComplaintId);
@@ -76,6 +78,7 @@ const ComplaintsComponent: React.FC<ComplaintsComponentProps> = ({ complaints, a
     } else {
       const newComplaint: Complaint = {
         id: `CMPT-${Date.now()}`,
+        householdId: user.householdId,
         date: new Date(),
         issue,
         details,

@@ -1,73 +1,58 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Recycle, Smartphone, KeyRound, ArrowRight, RefreshCw, Info } from 'lucide-react';
+import { Recycle, Smartphone, KeyRound, ArrowRight, Info, Mail, ArrowLeft, Loader2, User as UserIcon } from 'lucide-react';
 
-const AuthFlow: React.FC = () => {
-    const [step, setStep] = useState<'mobile' | 'otp'>('mobile');
-    const [mobileNumber, setMobileNumber] = useState('');
-    const [otp, setOtp] = useState('');
-    const [generatedOtp, setGeneratedOtp] = useState('');
+type AuthMode = 'login' | 'signup';
+
+interface AuthFlowProps {
+    onBack: () => void;
+}
+
+const AuthFlow: React.FC<AuthFlowProps> = ({ onBack }) => {
+    const [mode, setMode] = useState<AuthMode>('login');
+    const [identifier, setIdentifier] = useState('');
+    const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [name, setName] = useState('');
     const [error, setError] = useState('');
-    const [resendTimer, setResendTimer] = useState(0);
+    const [isLoading, setIsLoading] = useState(false);
 
     const auth = useAuth();
+    
+    const isEmail = identifier.includes('@');
 
-    useEffect(() => {
-        let timerId: number;
-        if (resendTimer > 0) {
-            timerId = window.setTimeout(() => setResendTimer(resendTimer - 1), 1000);
-        }
-        return () => clearTimeout(timerId);
-    }, [resendTimer]);
-
-    const sendOtpViaWhatsApp = () => {
-        const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
-        setGeneratedOtp(newOtp);
-
-        const message = `Your EcoTrack verification OTP is: ${newOtp}`;
-        // Assuming an Indian country code. A real app would need a country code selector.
-        const whatsappUrl = `https://wa.me/91${mobileNumber}?text=${encodeURIComponent(message)}`;
-        
-        window.open(whatsappUrl, '_blank');
-    };
-
-    const handleSendOtp = (e: React.FormEvent) => {
+    const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (mobileNumber.length !== 10) {
-            setError('Please enter a valid 10-digit mobile number.');
-            return;
-        }
         setError('');
-        sendOtpViaWhatsApp();
-        setResendTimer(30);
-        setStep('otp');
-    };
-
-    const handleVerifyOtp = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (otp !== generatedOtp) {
-            setError('Invalid OTP. Please try again.');
-            return;
-        }
-        setError('');
-        auth.login(mobileNumber);
-    };
-
-    const handleResendOtp = () => {
-        if (resendTimer === 0) {
-            sendOtpViaWhatsApp();
-            setResendTimer(30);
-            setError('');
-            setOtp('');
+        setIsLoading(true);
+        const result = await auth.login(identifier, password);
+        setIsLoading(false);
+        if (!result.success) {
+            setError(result.message || 'Login failed. Please try again.');
         }
     };
     
-    const changeNumber = () => {
-        setMobileNumber('');
-        setOtp('');
+    const handleSignup = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (password !== confirmPassword) {
+            setError('Passwords do not match.');
+            return;
+        }
         setError('');
-        setGeneratedOtp('');
-        setStep('mobile');
+        setIsLoading(true);
+        const result = await auth.signup(name, identifier, password);
+        setIsLoading(false);
+        if (!result.success) {
+            setError(result.message || 'Sign up failed. Please try again.');
+        }
+    }
+    
+    const resetForm = () => {
+        setIdentifier('');
+        setPassword('');
+        setConfirmPassword('');
+        setName('');
+        setError('');
     }
 
     return (
@@ -79,73 +64,55 @@ const AuthFlow: React.FC = () => {
                 </div>
                 <p className="text-text-light dark:text-text-dark mb-8">Your partner in sustainable waste management.</p>
                 
-                <div className="bg-card-light dark:bg-card-dark p-8 rounded-2xl shadow-xl w-full">
-                    {step === 'mobile' ? (
-                        <form onSubmit={handleSendOtp} className="animate-scale-in">
-                            <h2 className="text-2xl font-semibold text-heading-light dark:text-heading-dark mb-2">Login or Sign Up</h2>
-                            <p className="text-text-light dark:text-text-dark mb-6 text-sm">Enter your mobile number to receive an OTP on WhatsApp.</p>
-                            <div className="relative mb-4">
-                                <Smartphone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-                                <input
-                                    type="tel"
-                                    value={mobileNumber}
-                                    onChange={(e) => setMobileNumber(e.target.value.replace(/[^0-9]/g, '').slice(0, 10))}
-                                    placeholder="10-digit mobile number"
-                                    className="w-full p-3 pl-12 border border-border-light dark:border-border-dark bg-slate-100 dark:bg-slate-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                                />
+                <div className="bg-card-light dark:bg-card-dark p-8 rounded-2xl shadow-xl w-full relative">
+                    <button onClick={onBack} className="absolute top-4 left-4 text-slate-500 hover:text-primary">
+                        <ArrowLeft size={24}/>
+                    </button>
+                    
+                    <div className="flex items-center justify-center p-1 rounded-full bg-slate-100 dark:bg-slate-700 mb-6">
+                        <button onClick={() => { setMode('login'); resetForm(); }} className={`w-1/2 p-2 rounded-full font-semibold text-sm transition-colors ${mode === 'login' ? 'bg-white dark:bg-slate-800 shadow text-primary' : 'text-slate-500'}`}>Login</button>
+                        <button onClick={() => { setMode('signup'); resetForm(); }} className={`w-1/2 p-2 rounded-full font-semibold text-sm transition-colors ${mode === 'signup' ? 'bg-white dark:bg-slate-800 shadow text-primary' : 'text-slate-500'}`}>Sign Up</button>
+                    </div>
+
+                    {mode === 'login' ? (
+                        <form onSubmit={handleLogin} className="space-y-4 animate-fade-in">
+                            <h2 className="text-2xl font-semibold text-heading-light dark:text-heading-dark">Welcome Back!</h2>
+                            <div className="relative">
+                                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                                <input type="text" value={identifier} onChange={(e) => setIdentifier(e.target.value)} placeholder="Email or Mobile" className="w-full p-3 pl-12 border border-border-light dark:border-border-dark bg-slate-100 dark:bg-slate-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"/>
                             </div>
-                            <button
-                                type="submit"
-                                disabled={mobileNumber.length !== 10}
-                                className="w-full bg-gradient-to-r from-primary to-accent text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center text-lg shadow-lg hover:shadow-glow-primary transition-all transform hover:scale-105 disabled:from-slate-400 disabled:to-slate-500 disabled:shadow-none disabled:scale-100"
-                            >
-                                Send OTP <ArrowRight className="ml-2" />
+                            <div className="relative">
+                                <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                                <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" className="w-full p-3 pl-12 border border-border-light dark:border-border-dark bg-slate-100 dark:bg-slate-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"/>
+                            </div>
+                            <button type="submit" disabled={isLoading} className="w-full bg-gradient-to-r from-primary to-accent text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center text-lg shadow-lg hover:shadow-glow-primary transition-all transform hover:scale-105 disabled:opacity-50">
+                                {isLoading ? <Loader2 className="animate-spin" /> : 'Login'}
                             </button>
+                             <p className="text-xs text-slate-500 pt-2">Forgot password? Please contact the administrator for assistance.</p>
                         </form>
                     ) : (
-                         <form onSubmit={handleVerifyOtp} className="animate-scale-in">
-                            <h2 className="text-2xl font-semibold text-heading-light dark:text-heading-dark mb-2">Verify OTP</h2>
-                            <p className="text-text-light dark:text-text-dark mb-4 text-sm">
-                                Enter the code sent to <span className="font-bold">{mobileNumber}</span>.
-                                <button type="button" onClick={changeNumber} className="text-primary ml-2 text-sm font-semibold">Change</button>
-                            </p>
-                            
-                            <div className="bg-blue-100 dark:bg-blue-900/50 border-l-4 border-blue-500 text-blue-800 dark:text-blue-300 p-3 rounded-r-lg shadow-sm mb-4 text-sm flex items-start" role="alert">
-                                <Info size={18} className="mr-2 flex-shrink-0 mt-0.5"/>
-                                <div>
-                                    An OTP has been sent to your WhatsApp. A new tab may have opened. Please check your messages and enter the code below.
-                                </div>
+                        <form onSubmit={handleSignup} className="space-y-4 animate-fade-in">
+                            <h2 className="text-2xl font-semibold text-heading-light dark:text-heading-dark">Create Account</h2>
+                             <div className="relative">
+                                <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                                <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Full Name" className="w-full p-3 pl-12 border border-border-light dark:border-border-dark bg-slate-100 dark:bg-slate-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"/>
                             </div>
-
-                            <div className="relative mb-4">
+                            <div className="relative">
+                                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                                <input type="text" value={identifier} onChange={(e) => setIdentifier(e.target.value)} placeholder="Email or Mobile" className="w-full p-3 pl-12 border border-border-light dark:border-border-dark bg-slate-100 dark:bg-slate-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"/>
+                            </div>
+                            <div className="relative">
                                 <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-                                <input
-                                    type="tel"
-                                    value={otp}
-                                    onChange={(e) => setOtp(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
-                                    placeholder="6-digit OTP"
-                                    className="w-full p-3 pl-12 border border-border-light dark:border-border-dark bg-slate-100 dark:bg-slate-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                                />
+                                <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" className="w-full p-3 pl-12 border border-border-light dark:border-border-dark bg-slate-100 dark:bg-slate-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"/>
                             </div>
-                            <button
-                                type="submit"
-                                disabled={otp.length !== 6}
-                                className="w-full bg-gradient-to-r from-primary to-accent text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center text-lg shadow-lg hover:shadow-glow-primary transition-all transform hover:scale-105 disabled:from-slate-400 disabled:to-slate-500 disabled:shadow-none disabled:scale-100"
-                            >
-                                Verify & Proceed
+                            <div className="relative">
+                                <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                                <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Confirm Password" className="w-full p-3 pl-12 border border-border-light dark:border-border-dark bg-slate-100 dark:bg-slate-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"/>
+                            </div>
+                             <button type="submit" disabled={isLoading} className="w-full bg-gradient-to-r from-primary to-accent text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center text-lg shadow-lg hover:shadow-glow-primary transition-all transform hover:scale-105 disabled:opacity-50">
+                                {isLoading ? <Loader2 className="animate-spin" /> : 'Sign Up'}
                             </button>
-                            <div className="mt-4 text-sm">
-                                <button
-                                    type="button"
-                                    onClick={handleResendOtp}
-                                    disabled={resendTimer > 0}
-                                    className="text-primary font-semibold disabled:text-slate-400 disabled:cursor-not-allowed flex items-center justify-center w-full"
-                                >
-                                    <RefreshCw size={14} className={`mr-1 ${resendTimer > 0 ? 'animate-spin' : ''}`} style={{animationDuration: '2s'}} />
-                                    {resendTimer > 0 ? `Resend in ${resendTimer}s` : 'Resend OTP'}
-                                </button>
-                            </div>
-                         </form>
+                        </form>
                     )}
                      {error && <p className="text-red-500 text-sm mt-4 animate-fade-in">{error}</p>}
                 </div>
