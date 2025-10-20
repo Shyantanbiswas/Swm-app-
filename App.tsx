@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Home, IndianRupee, History, MessageSquareWarning, Bot, ShoppingBasket, User as UserIcon } from 'lucide-react';
+import { Home, IndianRupee, History, MessageSquareWarning, Bot, ShoppingBasket, User as UserIcon, Mail } from 'lucide-react';
 
 import type { View } from './types';
 import { ViewType } from './types';
@@ -10,6 +10,7 @@ import ComplaintsComponent from './components/Complaints';
 import EducationComponent from './components/Education';
 import BookingComponent from './components/Booking';
 import ProfileComponent from './components/Profile';
+import MessagesComponent from './components/MessagesComponent';
 import Header from './components/Header';
 import Chatbot from './components/Chatbot';
 import BroadcastModal from './components/BroadcastModal';
@@ -74,6 +75,8 @@ const UserApp: React.FC = () => {
         return <EducationComponent />;
       case ViewType.Booking:
         return <BookingComponent />;
+      case ViewType.Messages:
+        return <MessagesComponent />;
       case ViewType.Profile:
         return <ProfileComponent />;
       default:
@@ -155,10 +158,19 @@ interface BottomNavProps {
 }
 
 const BottomNav: React.FC<BottomNavProps> = ({ currentView, setCurrentView }) => {
+  const { user } = useAuth();
+  const { messages } = useData();
+
+  const unreadCount = useMemo(() => {
+    if (!user) return 0;
+    return messages.filter(m => m.recipientId === user.householdId && !m.read).length;
+  }, [user, messages]);
+
   const navItems = [
     { view: ViewType.Dashboard, icon: Home, label: 'Home' },
     { view: ViewType.Payment, icon: IndianRupee, label: 'Pay' },
-    { view: ViewType.Booking, icon: ShoppingBasket, label: 'Book eCart' },
+    { view: ViewType.Messages, icon: Mail, label: 'Inbox', badgeCount: unreadCount },
+    { view: ViewType.Booking, icon: ShoppingBasket, label: 'Book' },
     { view: ViewType.History, icon: History, label: 'History' },
     { view: ViewType.Profile, icon: UserIcon, label: 'Profile' },
   ];
@@ -174,7 +186,14 @@ const BottomNav: React.FC<BottomNavProps> = ({ currentView, setCurrentView }) =>
               currentView === item.view ? 'text-primary' : 'text-secondary dark:text-secondary-dark hover:text-primary'
             }`}
           >
-            <item.icon size={24} strokeWidth={currentView === item.view ? 2.5 : 2} />
+            <div className="relative">
+                <item.icon size={24} strokeWidth={currentView === item.view ? 2.5 : 2} />
+                {item.badgeCount && item.badgeCount > 0 && (
+                    <span className="absolute -top-1 -right-2 w-4 h-4 text-[10px] bg-red-500 text-white font-bold rounded-full flex items-center justify-center">
+                        {item.badgeCount > 9 ? '9+' : item.badgeCount}
+                    </span>
+                )}
+            </div>
             <span className={`text-xs font-semibold mt-1 transition-opacity ${currentView === item.view ? 'opacity-100' : 'opacity-70'}`}>{item.label}</span>
              {currentView === item.view && <div className="absolute -bottom-1 w-8 h-1 bg-gradient-to-r from-primary to-accent rounded-full mt-1 transition-all"></div>}
           </button>

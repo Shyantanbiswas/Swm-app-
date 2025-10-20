@@ -1,10 +1,11 @@
 import React, { createContext, useState, useContext, ReactNode } from 'react';
-import type { User, Payment, Complaint, Booking } from '../types';
+import type { User, Payment, Complaint, Booking, Message } from '../types';
+import { PAYMENT_AMOUNT } from '../constants';
 
 // --- MOCK DATABASE ---
 const initialUsers: User[] = [
-    { name: 'Shyantan Biswas', householdId: 'HH-SHYA-SWAS', identifier: '9635929052', password: 'password123', status: 'active', hasGreenBadge: true, bookingReminders: true, profilePicture: '', email: 'shyantanbiswas7@gmail.com' },
-    { name: 'Jane Doe', householdId: 'HH-JANE-9876', identifier: 'jane.doe@example.com', password: 'password456', status: 'active', hasGreenBadge: false, bookingReminders: true, profilePicture: '', email: 'jane.doe@example.com' },
+    { name: 'Shyantan Biswas', householdId: 'HH-SHYA-SWAS', identifier: '9635929052', password: 'password123', status: 'active', hasGreenBadge: true, bookingReminders: true, profilePicture: '', email: 'shyantanbiswas7@gmail.com', createdAt: new Date(2024, 5, 1), outstandingBalance: 75 },
+    { name: 'Jane Doe', householdId: 'HH-JANE-9876', identifier: 'jane.doe@example.com', password: 'password456', status: 'active', hasGreenBadge: false, bookingReminders: true, profilePicture: '', email: 'jane.doe@example.com', createdAt: new Date(2024, 6, 10), outstandingBalance: 150 },
 ];
 
 const initialPayments: Payment[] = [
@@ -25,6 +26,11 @@ const initialBookings: Booking[] = [
     { id: 'BK-001', householdId: 'HH-SHYA-SWAS', date: '2024-07-28', timeSlot: 'Morning', wasteType: 'Garden Waste', status: 'Completed' },
     { id: 'BK-002', householdId: 'HH-JANE-9876', date: '2024-08-05', timeSlot: 'Afternoon', wasteType: 'Bulk Household', status: 'Scheduled' },
 ];
+
+const initialMessages: Message[] = [
+    { id: 'MSG-001', recipientId: 'HH-JANE-9876', text: 'Hi Jane, please ensure your waste is properly segregated for the next pickup. Thank you!', timestamp: new Date(2024, 6, 22, 11, 45), read: false },
+    { id: 'MSG-002', recipientId: 'HH-SHYA-SWAS', text: 'Your "Driver Behavior" complaint (CMPT-002) has been reviewed. We have taken action and apologize for the inconvenience.', timestamp: new Date(), read: true },
+];
 // --- END MOCK DATABASE ---
 
 interface DataContextType {
@@ -32,17 +38,20 @@ interface DataContextType {
   payments: Payment[];
   complaints: Complaint[];
   bookings: Booking[];
+  messages: Message[];
   broadcastMessage: string | null;
   addUser: (user: User) => void;
   updateUser: (updatedUser: User) => void;
   deleteUser: (householdId: string) => void;
   clearUserWarning: (householdId: string) => void;
-  addPayment: (payment: Payment) => void;
+  addPayment: (payment: Payment) => Promise<Payment>;
   updatePayment: (payment: Payment) => void;
   addComplaint: (complaint: Complaint) => void;
   updateComplaint: (complaint: Complaint) => void;
   addBooking: (booking: Booking) => void;
   updateBooking: (booking: Booking) => void;
+  addMessage: (recipientId: string, text: string) => void;
+  markMessagesAsRead: (householdId: string) => void;
   updateBroadcastMessage: (message: string) => void;
 }
 
@@ -53,6 +62,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [payments, setPayments] = useState<Payment[]>(initialPayments);
   const [complaints, setComplaints] = useState<Complaint[]>(initialComplaints);
   const [bookings, setBookings] = useState<Booking[]>(initialBookings);
+  const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [broadcastMessage, setBroadcastMessage] = useState<string | null>("Welcome! A friendly reminder that monthly payments are due by the end of the week. Thank you!");
 
 
@@ -76,7 +86,54 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setUsers(prev => prev.map(u => u.householdId === householdId ? { ...u, status: 'active', warningMessage: undefined } : u));
   }
 
-  const addPayment = (payment: Payment) => setPayments(prev => [payment, ...prev]);
+  const addPayment = (payment: Payment): Promise<Payment> => {
+    // Add payment to state optimistically
+    setPayments(prev => [payment, ...prev]);
+
+    // For a real-world, scalable application, you would make an API call to a secure backend here.
+    // The backend would handle the verification and payment processing.
+    // The `setTimeout` below simulates this asynchronous network request.
+    if (payment.status === 'Pending Verification') {
+        return new Promise((resolve, reject) => {
+            setTimeout(() => {
+                const isSuccess = Math.random() < 0.8; // 80% success rate simulation
+                
+                let finalPayment: Payment = { ...payment };
+
+                if (isSuccess) {
+                    finalPayment = { ...payment, status: 'Paid' };
+                    // Deduct amount from user's balance
+                    setUsers(prevUsers => prevUsers.map(u => 
+                        u.householdId === payment.householdId && typeof u.outstandingBalance === 'number'
+                        ? { ...u, outstandingBalance: u.outstandingBalance - payment.amount }
+                        : u
+                    ));
+                } else {
+                    finalPayment = { 
+                        ...payment, 
+                        status: 'Rejected', 
+                        rejectionReason: 'Automated verification failed. Please check the screenshot and try again.' 
+                    };
+                }
+                
+                // Update the payment status in the main state
+                setPayments(prevPayments => prevPayments.map(p => 
+                    p.id === payment.id ? finalPayment : p
+                ));
+                
+                if (isSuccess) {
+                    resolve(finalPayment);
+                } else {
+                    reject(finalPayment);
+                }
+            }, 3000); // 3-second delay to simulate backend processing
+        });
+    }
+
+    // If payment does not require verification, resolve immediately.
+    return Promise.resolve(payment);
+  };
+
   const updatePayment = (updatedPayment: Payment) => {
     setPayments(prev => prev.map(p => p.id === updatedPayment.id ? updatedPayment : p));
   }
@@ -92,13 +149,30 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const updateBooking = (updatedBooking: Booking) => {
       setBookings(prev => prev.map(b => b.id === updatedBooking.id ? updatedBooking : b));
   };
+
+  const addMessage = (recipientId: string, text: string) => {
+    const newMessage: Message = {
+        id: `MSG-${Date.now()}`,
+        recipientId,
+        text,
+        timestamp: new Date(),
+        read: false,
+    };
+    setMessages(prev => [newMessage, ...prev]);
+  };
+
+  const markMessagesAsRead = (householdId: string) => {
+      setMessages(prev => prev.map(msg => 
+          msg.recipientId === householdId && !msg.read ? { ...msg, read: true } : msg
+      ));
+  };
   
   const updateBroadcastMessage = (message: string) => {
     setBroadcastMessage(message);
   }
 
   return (
-    <DataContext.Provider value={{ users, payments, complaints, bookings, broadcastMessage, addUser, updateUser, deleteUser, clearUserWarning, addPayment, updatePayment, addComplaint, updateComplaint, addBooking, updateBooking, updateBroadcastMessage }}>
+    <DataContext.Provider value={{ users, payments, complaints, bookings, messages, broadcastMessage, addUser, updateUser, deleteUser, clearUserWarning, addPayment, updatePayment, addComplaint, updateComplaint, addBooking, updateBooking, addMessage, markMessagesAsRead, updateBroadcastMessage }}>
       {children}
     </DataContext.Provider>
   );

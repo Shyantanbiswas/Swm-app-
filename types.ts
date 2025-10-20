@@ -8,6 +8,7 @@ export enum ViewType {
     Education = 'Education',
     Booking = 'Booking',
     Profile = 'Profile',
+    Messages = 'Messages',
 }
 
 export type View = ViewType;
@@ -23,6 +24,8 @@ export interface User {
     bookingReminders: boolean;
     profilePicture?: string;
     email?: string;
+    createdAt: Date;
+    outstandingBalance: number;
 }
 
 export interface Payment {
@@ -58,4 +61,12 @@ export interface Booking {
     wasteType: 'Event Waste' | 'Bulk Household' | 'Garden Waste';
     status: 'Scheduled' | 'Completed';
     notes?: string;
+}
+
+export interface Message {
+  id: string;
+  recipientId: string; // householdId
+  text: string;
+  timestamp: Date;
+  read: boolean;
 }

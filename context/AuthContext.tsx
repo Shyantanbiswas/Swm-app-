@@ -1,6 +1,7 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 import type { User } from '../types';
 import { useData } from './DataContext';
+import { PAYMENT_AMOUNT } from '../constants';
 
 const USER_ID_STORAGE_KEY = 'ecotrack-user-id';
 
@@ -92,6 +93,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         bookingReminders: true,
         profilePicture: '',
         email: isEmail ? normalizedIdentifier : '',
+        createdAt: new Date(),
+        // FIX: Add missing outstandingBalance property for new users.
+        outstandingBalance: PAYMENT_AMOUNT,
     };
     addUser(newUser);
 

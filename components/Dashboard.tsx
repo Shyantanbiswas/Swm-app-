@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { User, Booking } from '../types';
-import { Truck, Video, BarChart2, MapPin, BellRing } from 'lucide-react';
+import { Truck, Video, BarChart2, MapPin, BellRing, IndianRupee, CheckCircle } from 'lucide-react';
 import { PieChart, Pie, Legend, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 interface DashboardProps {
@@ -71,8 +71,25 @@ const Dashboard: React.FC<DashboardProps> = ({ user, bookings }) => {
     <div className="space-y-6">
       <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent animate-fade-in-down">Welcome, {user.name.split(' ')[0]}!</h2>
       
+      <div className="bg-card-light dark:bg-card-dark p-4 rounded-xl shadow-md transition-all hover:shadow-lg hover:-translate-y-1 animate-fade-in-up border border-border-light dark:border-border-dark" style={{animationDelay: '100ms'}}>
+        <h3 className="font-semibold text-lg mb-3 flex items-center text-heading-light dark:text-heading-dark"><IndianRupee className="mr-2 text-primary" />Balance Summary</h3>
+        {user.outstandingBalance > 0 ? (
+          <div>
+            <p className="text-sm text-text-light dark:text-text-dark">You have a pending balance.</p>
+            <p className="text-4xl font-bold text-red-500 mt-2">₹{user.outstandingBalance.toFixed(2)}</p>
+            <p className="text-xs text-slate-400 mt-1">Please pay to avoid service disruption.</p>
+          </div>
+        ) : (
+          <div>
+            <p className="text-sm text-text-light dark:text-text-dark">Your account is settled.</p>
+            <p className="text-3xl font-bold text-success mt-2 flex items-center"><CheckCircle className="mr-2"/> All Cleared!</p>
+            <p className="text-xs text-slate-400 mt-1">Thank you for your timely payments.</p>
+          </div>
+        )}
+      </div>
+
       {upcomingBooking && (
-        <div className="bg-info/10 dark:bg-info/20 border-l-4 border-info text-info p-4 rounded-r-lg shadow-md animate-fade-in-up" role="alert" style={{animationDelay: '100ms'}}>
+        <div className="bg-info/10 dark:bg-info/20 border-l-4 border-info text-info p-4 rounded-r-lg shadow-md animate-fade-in-up" role="alert" style={{animationDelay: '200ms'}}>
           <div className="flex items-center">
             <BellRing className="h-6 w-6 mr-3 flex-shrink-0"/>
             <div>
@@ -83,7 +100,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, bookings }) => {
         </div>
       )}
 
-      <div className="bg-card-light dark:bg-card-dark p-4 rounded-xl shadow-md transition-all hover:shadow-lg hover:-translate-y-1 animate-fade-in-up border border-border-light dark:border-border-dark" style={{animationDelay: '200ms'}}>
+      <div className="bg-card-light dark:bg-card-dark p-4 rounded-xl shadow-md transition-all hover:shadow-lg hover:-translate-y-1 animate-fade-in-up border border-border-light dark:border-border-dark" style={{animationDelay: '300ms'}}>
         <h3 className="font-semibold text-lg mb-3 flex items-center text-heading-light dark:text-heading-dark"><MapPin className="mr-2 text-primary" />Live Collection Status</h3>
         <p className="text-sm text-text-light dark:text-text-dark mb-4">Your e-rickshaw is on its way. ETA: <span className="font-bold text-primary">{15 - Math.floor(rickshawPosition / 10)} mins</span></p>
         <div className="relative w-full h-2 bg-slate-200 dark:bg-slate-600 rounded-full overflow-hidden">
@@ -103,7 +120,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, bookings }) => {
         </div>
       </div>
 
-      <div className="bg-card-light dark:bg-card-dark p-4 rounded-xl shadow-md transition-all hover:shadow-lg hover:-translate-y-1 animate-fade-in-up border border-border-light dark:border-border-dark" style={{animationDelay: '300ms'}}>
+      <div className="bg-card-light dark:bg-card-dark p-4 rounded-xl shadow-md transition-all hover:shadow-lg hover:-translate-y-1 animate-fade-in-up border border-border-light dark:border-border-dark" style={{animationDelay: '400ms'}}>
         <h3 className="font-semibold text-lg mb-3 flex items-center text-heading-light dark:text-heading-dark"><BarChart2 className="mr-2 text-primary" />Community Waste Diversion</h3>
         <div className="h-48 relative">
             <ResponsiveContainer width="100%" height="100%">
@@ -145,7 +162,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, bookings }) => {
         <p className="text-center text-sm text-text-light dark:text-text-dark mt-2">Total CO₂ Saved: <span className="font-bold text-green-700 dark:text-green-400">1.2 Tons</span></p>
       </div>
 
-       <div className="bg-gradient-to-br from-primary-dark to-accent text-white p-5 rounded-xl shadow-lg text-center transition-all hover:shadow-xl hover:-translate-y-1 animate-fade-in-up" style={{animationDelay: '400ms'}}>
+       <div className="bg-gradient-to-br from-primary-dark to-accent text-white p-5 rounded-xl shadow-lg text-center transition-all hover:shadow-xl hover:-translate-y-1 animate-fade-in-up" style={{animationDelay: '500ms'}}>
             <h3 className="font-bold text-lg">Support Our NGO!</h3>
             <p className="text-sm mt-1 mb-3 opacity-90">Watch a 30-second ad to contribute to our cause. It's optional but greatly appreciated!</p>
             <button onClick={handleAdWatch} className="bg-white/90 text-primary-dark font-bold py-2 px-5 rounded-full flex items-center mx-auto hover:bg-white transition-transform transform hover:scale-105 shadow-md hover:shadow-lg">
