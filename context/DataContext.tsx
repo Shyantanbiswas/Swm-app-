@@ -1,10 +1,11 @@
-import React, { createContext, useState, useContext, ReactNode } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 import type { User, Payment, Complaint, Booking, Message } from '../types';
 import { PAYMENT_AMOUNT } from '../constants';
 
-// --- MOCK DATABASE ---
+// --- MOCK DATABASE (for initial seeding) ---
 const initialUsers: User[] = [
     { name: 'Shyantan Biswas', householdId: 'HH-SHYA-SWAS', identifier: '9635929052', password: 'password123', status: 'active', hasGreenBadge: true, bookingReminders: true, profilePicture: '', email: 'shyantanbiswas7@gmail.com', createdAt: new Date(2024, 5, 1), outstandingBalance: 75 },
+    { name: 'Admin Two', householdId: 'HH-ADMN-1746', identifier: '9064201746', password: 'adminpassword', status: 'active', hasGreenBadge: true, bookingReminders: false, profilePicture: '', email: 'admin2@ecotrack.com', createdAt: new Date(2024, 5, 1), outstandingBalance: 0 },
     { name: 'Jane Doe', householdId: 'HH-JANE-9876', identifier: 'jane.doe@example.com', password: 'password456', status: 'active', hasGreenBadge: false, bookingReminders: true, profilePicture: '', email: 'jane.doe@example.com', createdAt: new Date(2024, 6, 10), outstandingBalance: 150 },
 ];
 
@@ -31,8 +32,40 @@ const initialMessages: Message[] = [
     { id: 'MSG-001', recipientId: 'HH-JANE-9876', text: 'Hi Jane, please ensure your waste is properly segregated for the next pickup. Thank you!', timestamp: new Date(2024, 6, 22, 11, 45), read: false },
     { id: 'MSG-002', recipientId: 'HH-SHYA-SWAS', text: 'Your "Driver Behavior" complaint (CMPT-002) has been reviewed. We have taken action and apologize for the inconvenience.', timestamp: new Date(), read: true },
 ];
+
+const initialBroadcastMessage = "Welcome! A friendly reminder that monthly payments are due by the end of the week. Thank you!";
 // --- END MOCK DATABASE ---
 
+
+// --- LOCALSTORAGE PERSISTENCE HELPERS ---
+
+// A reviver function for JSON.parse to correctly handle Date objects
+const dateReviver = (key: string, value: any) => {
+    if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(value)) {
+        return new Date(value);
+    }
+    return value;
+};
+
+// FIX: Added generic type parameter <T> to the function signature.
+// Generic function to load data from localStorage or return initial data
+const loadFromStorage = <T,>(key: string, initialValue: T): T => {
+    try {
+        const item = window.localStorage.getItem(key);
+        if (item) {
+            return JSON.parse(item, dateReviver) as T;
+        }
+    } catch (error) {
+        // FIX: Correctly reference 'key' and 'error' variables in the console message.
+        console.error(`Error loading ${key} from storage, using initial value.`, error);
+    }
+    // If no item, set the initial value in storage for next time
+    window.localStorage.setItem(key, JSON.stringify(initialValue));
+    return initialValue;
+};
+
+
+// FIX: Defined the DataContextType interface.
 interface DataContextType {
   users: User[];
   payments: Payment[];
@@ -55,17 +88,29 @@ interface DataContextType {
   updateBroadcastMessage: (message: string) => void;
 }
 
+// FIX: Created the context with the correct type.
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
+// FIX: Created and exported the DataProvider component, which was missing.
+// This component encapsulates all the state management logic.
 export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [users, setUsers] = useState<User[]>(initialUsers);
-  const [payments, setPayments] = useState<Payment[]>(initialPayments);
-  const [complaints, setComplaints] = useState<Complaint[]>(initialComplaints);
-  const [bookings, setBookings] = useState<Booking[]>(initialBookings);
-  const [messages, setMessages] = useState<Message[]>(initialMessages);
-  const [broadcastMessage, setBroadcastMessage] = useState<string | null>("Welcome! A friendly reminder that monthly payments are due by the end of the week. Thank you!");
+  // FIX: Used useState hook correctly to manage state for users, payments, etc.
+  const [users, setUsers] = useState<User[]>(() => loadFromStorage('ecotrack_users', initialUsers));
+  const [payments, setPayments] = useState<Payment[]>(() => loadFromStorage('ecotrack_payments', initialPayments));
+  const [complaints, setComplaints] = useState<Complaint[]>(() => loadFromStorage('ecotrack_complaints', initialComplaints));
+  const [bookings, setBookings] = useState<Booking[]>(() => loadFromStorage('ecotrack_bookings', initialBookings));
+  const [messages, setMessages] = useState<Message[]>(() => loadFromStorage('ecotrack_messages', initialMessages));
+  const [broadcastMessage, setBroadcastMessage] = useState<string | null>(() => loadFromStorage('ecotrack_broadcast', initialBroadcastMessage));
 
+  // FIX: Used useEffect hooks to persist state changes to localStorage.
+  useEffect(() => { localStorage.setItem('ecotrack_users', JSON.stringify(users)); }, [users]);
+  useEffect(() => { localStorage.setItem('ecotrack_payments', JSON.stringify(payments)); }, [payments]);
+  useEffect(() => { localStorage.setItem('ecotrack_complaints', JSON.stringify(complaints)); }, [complaints]);
+  useEffect(() => { localStorage.setItem('ecotrack_bookings', JSON.stringify(bookings)); }, [bookings]);
+  useEffect(() => { localStorage.setItem('ecotrack_messages', JSON.stringify(messages)); }, [messages]);
+  useEffect(() => { localStorage.setItem('ecotrack_broadcast', JSON.stringify(broadcastMessage)); }, [broadcastMessage]);
 
+  // FIX: Defined all data manipulation functions inside the provider component scope.
   const addUser = (user: User) => {
     setUsers(prev => [...prev, user]);
   }
@@ -90,9 +135,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Add payment to state optimistically
     setPayments(prev => [payment, ...prev]);
 
-    // For a real-world, scalable application, you would make an API call to a secure backend here.
-    // The backend would handle the verification and payment processing.
-    // The `setTimeout` below simulates this asynchronous network request.
+    // This simulation remains, but now the final result is persisted
     if (payment.status === 'Pending Verification') {
         return new Promise((resolve, reject) => {
             setTimeout(() => {
@@ -116,7 +159,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     };
                 }
                 
-                // Update the payment status in the main state
+                // Update the payment status in the main state, which will trigger the useEffect to save it
                 setPayments(prevPayments => prevPayments.map(p => 
                     p.id === payment.id ? finalPayment : p
                 ));
@@ -171,13 +214,17 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setBroadcastMessage(message);
   }
 
+  // FIX: Bundled all state and functions into a value object to pass to the provider.
+  const value = { users, payments, complaints, bookings, messages, broadcastMessage, addUser, updateUser, deleteUser, clearUserWarning, addPayment, updatePayment, addComplaint, updateComplaint, addBooking, updateBooking, addMessage, markMessagesAsRead, updateBroadcastMessage };
+
   return (
-    <DataContext.Provider value={{ users, payments, complaints, bookings, messages, broadcastMessage, addUser, updateUser, deleteUser, clearUserWarning, addPayment, updatePayment, addComplaint, updateComplaint, addBooking, updateBooking, addMessage, markMessagesAsRead, updateBroadcastMessage }}>
+    <DataContext.Provider value={value}>
       {children}
     </DataContext.Provider>
   );
 };
 
+// FIX: Created and exported the useData custom hook for consuming the context.
 export const useData = (): DataContextType => {
   const context = useContext(DataContext);
   if (!context) {

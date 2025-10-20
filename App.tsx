@@ -120,7 +120,7 @@ const App: React.FC = () => {
   const isAdminLoggedIn = localStorage.getItem('isAdminLoggedIn') === 'true';
 
   // The admin user is hardcoded for this demo
-  const isAdmin = user?.identifier === '9635929052';
+  const isAdmin = ['9635929052', '9064201746'].includes(user?.identifier || '');
   
   const handleAdminLogout = () => {
       logout(); // Full logout to return to selector

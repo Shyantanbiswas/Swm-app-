@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { Shield, KeyRound, ArrowRight, RefreshCw, Smartphone, ArrowLeft, Loader2 } from 'lucide-react';
 import { SUPPORT_PHONE_NUMBER } from '../constants';
 
-const ADMIN_PHONE_NUMBER = '9635929052';
+const ADMIN_PHONE_NUMBERS = ['9635929052', '9064201746'];
 
 interface AdminAuthFlowProps {
     onBack: () => void;
@@ -38,7 +38,7 @@ const AdminAuthFlow: React.FC<AdminAuthFlowProps> = ({ onBack }) => {
 
     const handleSendOtp = (e: React.FormEvent) => {
         e.preventDefault();
-        if (identifier !== ADMIN_PHONE_NUMBER) {
+        if (!ADMIN_PHONE_NUMBERS.includes(identifier)) {
             setError('Access Denied. This number is not registered as an administrator.');
             return;
         }
