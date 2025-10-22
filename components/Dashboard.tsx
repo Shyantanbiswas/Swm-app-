@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import type { User, Booking } from '../types';
-import { Truck, Video, BarChart2, MapPin, BellRing, IndianRupee, CheckCircle } from 'lucide-react';
-import { PieChart, Pie, Legend, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { Truck, Video, BarChart2, MapPin, BellRing, IndianRupee, CheckCircle, Flame } from 'lucide-react';
+import { PieChart, Pie, ResponsiveContainer, Cell, Sector } from 'recharts';
+import { useLanguage } from '../context/LanguageContext';
 
 interface DashboardProps {
   user: User;
   bookings: Booking[];
+  users: User[];
 }
 
 const communityData = [
@@ -13,33 +15,62 @@ const communityData = [
   { name: 'Composted', value: 45, color: '#fbbf24' },
   { name: 'Landfill', value: 12, color: '#f87171' },
 ];
-const totalWaste = communityData.reduce((sum, entry) => sum + entry.value, 0);
 
-const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-        const data = payload[0].payload;
-        const percentage = ((data.value / totalWaste) * 100).toFixed(1);
-        return (
-            <div className="p-2 bg-card-light/80 dark:bg-card-dark/80 backdrop-blur-sm border border-border-light dark:border-border-dark rounded-lg shadow-lg">
-                <p style={{ color: data.color }} className="font-bold">{data.name}</p>
-                <p className="text-text-light dark:text-text-dark">{`${data.value} kg (${percentage}%)`}</p>
-            </div>
-        );
-    }
-    return null;
+const renderActiveShape = (props: any) => {
+  const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill, payload, t } = props;
+
+  return (
+    <g>
+      <text x={cx} y={cy - 10} textAnchor="middle" fill={fill} className="text-xl font-bold transition-opacity duration-300">
+        {t(payload.name.toLowerCase())}
+      </text>
+       <text x={cx} y={cy + 15} textAnchor="middle" fill={fill} className="text-lg opacity-80 transition-opacity duration-300">
+        {`${payload.value} kg`}
+      </text>
+      <Sector
+        cx={cx}
+        cy={cy}
+        innerRadius={innerRadius}
+        outerRadius={outerRadius + 6} // Pop out effect
+        startAngle={startAngle}
+        endAngle={endAngle}
+        fill={fill}
+        style={{ filter: `drop-shadow(0 4px 8px ${fill}99)` }} // Glow effect
+      />
+    </g>
+  );
 };
 
-const Dashboard: React.FC<DashboardProps> = ({ user, bookings }) => {
-  const [rickshawPosition, setRickshawPosition] = useState(0);
+
+const Dashboard: React.FC<DashboardProps> = ({ user, bookings, users }) => {
+  const { t } = useLanguage();
   const [showAd, setShowAd] = useState(false);
   const [upcomingBooking, setUpcomingBooking] = useState<Booking | null>(null);
+  const [activeDriver, setActiveDriver] = useState<User | null>(null);
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  
+  const totalWaste = communityData.reduce((sum, entry) => sum + entry.value, 0);
+
+  const onPieEnter = useCallback((_: any, index: number) => {
+      setActiveIndex(index);
+  }, [setActiveIndex]);
+
+  const onPieLeave = useCallback(() => {
+      setActiveIndex(null);
+  }, [setActiveIndex]);
+
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setRickshawPosition((prev) => (prev > 95 ? 0 : prev + 10));
-    }, 2000);
-    return () => clearInterval(interval);
-  }, []);
+    // Find a driver with a recent location update (e.g., within the last 15 minutes)
+    const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
+    const driver = users.find(
+      (u) =>
+        u.role === 'driver' &&
+        u.lastLocation &&
+        u.lastLocation.timestamp > fifteenMinutesAgo
+    );
+    setActiveDriver(driver || null);
+  }, [users]); // This will re-run whenever the user data (including locations) changes
 
   useEffect(() => {
     if (user.bookingReminders) {
@@ -69,31 +100,39 @@ const Dashboard: React.FC<DashboardProps> = ({ user, bookings }) => {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent animate-fade-in-down">Welcome, {user.name.split(' ')[0]}!</h2>
+      <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent animate-fade-in-down">{t('dashboardTitle', { name: user.name.split(' ')[0] })}</h2>
       
-      <div className="bg-card-light dark:bg-card-dark p-4 rounded-xl shadow-md transition-all hover:shadow-lg hover:-translate-y-1 animate-fade-in-up border border-border-light dark:border-border-dark" style={{animationDelay: '100ms'}}>
-        <h3 className="font-semibold text-lg mb-3 flex items-center text-heading-light dark:text-heading-dark"><IndianRupee className="mr-2 text-primary" />Balance Summary</h3>
-        {user.outstandingBalance > 0 ? (
-          <div>
-            <p className="text-sm text-text-light dark:text-text-dark">You have a pending balance.</p>
-            <p className="text-4xl font-bold text-red-500 mt-2">₹{user.outstandingBalance.toFixed(2)}</p>
-            <p className="text-xs text-slate-400 mt-1">Please pay to avoid service disruption.</p>
-          </div>
-        ) : (
-          <div>
-            <p className="text-sm text-text-light dark:text-text-dark">Your account is settled.</p>
-            <p className="text-3xl font-bold text-success mt-2 flex items-center"><CheckCircle className="mr-2"/> All Cleared!</p>
-            <p className="text-xs text-slate-400 mt-1">Thank you for your timely payments.</p>
-          </div>
-        )}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="bg-card-light dark:bg-card-dark p-4 rounded-xl shadow-md transition-all hover:shadow-lg hover:-translate-y-1 animate-fade-in-up border border-border-light dark:border-border-dark" style={{animationDelay: '100ms'}}>
+          <h3 className="font-semibold text-lg mb-3 flex items-center text-heading-light dark:text-heading-dark"><IndianRupee className="mr-2 text-primary" />{t('balance')}</h3>
+          {user.outstandingBalance > 0 ? (
+            <div>
+              <p className="text-sm text-text-light dark:text-text-dark">{t('pendingBalance')}</p>
+              <p className="text-3xl font-bold text-red-500 mt-2">₹{user.outstandingBalance.toFixed(2)}</p>
+            </div>
+          ) : (
+            <div>
+              <p className="text-sm text-text-light dark:text-text-dark">{t('allSettled')}</p>
+              <p className="text-3xl font-bold text-success mt-2 flex items-center"><CheckCircle className="mr-2"/> {t('cleared')}</p>
+            </div>
+          )}
+        </div>
+        <div className="bg-card-light dark:bg-card-dark p-4 rounded-xl shadow-md transition-all hover:shadow-lg hover:-translate-y-1 animate-fade-in-up border border-border-light dark:border-border-dark" style={{animationDelay: '150ms'}}>
+          <h3 className="font-semibold text-lg mb-3 flex items-center text-heading-light dark:text-heading-dark"><Flame className="mr-2 text-orange-500" />{t('loginStreak')}</h3>
+            <div className="text-center">
+                <p className="text-4xl font-bold text-orange-500 mt-2">{user.loginStreak || 0}</p>
+                <p className="text-sm text-text-light dark:text-text-dark">{t(user.loginStreak === 1 ? 'daysInARow' : 'daysInARow_plural', { count: user.loginStreak || 0 })}</p>
+            </div>
+        </div>
       </div>
+
 
       {upcomingBooking && (
         <div className="bg-info/10 dark:bg-info/20 border-l-4 border-info text-info p-4 rounded-r-lg shadow-md animate-fade-in-up" role="alert" style={{animationDelay: '200ms'}}>
           <div className="flex items-center">
             <BellRing className="h-6 w-6 mr-3 flex-shrink-0"/>
             <div>
-              <p className="font-bold">Reminder</p>
+              <p className="font-bold">{t('reminder')}</p>
               <p className="text-sm">You have a {upcomingBooking.wasteType} collection scheduled for tomorrow ({upcomingBooking.timeSlot}).</p>
             </div>
           </div>
@@ -101,65 +140,88 @@ const Dashboard: React.FC<DashboardProps> = ({ user, bookings }) => {
       )}
 
       <div className="bg-card-light dark:bg-card-dark p-4 rounded-xl shadow-md transition-all hover:shadow-lg hover:-translate-y-1 animate-fade-in-up border border-border-light dark:border-border-dark" style={{animationDelay: '300ms'}}>
-        <h3 className="font-semibold text-lg mb-3 flex items-center text-heading-light dark:text-heading-dark"><MapPin className="mr-2 text-primary" />Live Collection Status</h3>
-        <p className="text-sm text-text-light dark:text-text-dark mb-4">Your e-rickshaw is on its way. ETA: <span className="font-bold text-primary">{15 - Math.floor(rickshawPosition / 10)} mins</span></p>
-        <div className="relative w-full h-2 bg-slate-200 dark:bg-slate-600 rounded-full overflow-hidden">
-          <div 
-            className="absolute top-0 left-0 h-full bg-gradient-to-r from-primary to-accent rounded-full transition-all duration-1000 ease-linear"
-            style={{ width: `${rickshawPosition}%` }}
-          >
+        <h3 className="font-semibold text-lg mb-3 flex items-center text-heading-light dark:text-heading-dark"><MapPin className="mr-2 text-primary" />{t('liveCollectionStatus')}</h3>
+        {activeDriver && activeDriver.lastLocation ? (
+          <div className="space-y-3">
+             <p className="text-sm text-text-light dark:text-text-dark">
+                Driver <span className="font-bold text-primary">{activeDriver.name}</span> is on the way.
+            </p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+                Last updated: {activeDriver.lastLocation.timestamp.toLocaleTimeString()}
+            </p>
+            {user.lastLocation ? (
+                 <a
+                    href={`https://www.google.com/maps/dir/?api=1&origin=${user.lastLocation.lat},${user.lastLocation.lng}&destination=${activeDriver.lastLocation.lat},${activeDriver.lastLocation.lng}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full inline-flex items-center justify-center bg-gradient-to-r from-primary to-accent text-white font-bold py-2 px-4 rounded-lg shadow-md hover:shadow-glow-primary transition-all transform hover:scale-105"
+                >
+                    <Truck className="mr-2" size={20} /> {t('viewOnMap')}
+                </a>
+            ) : (
+                 <button
+                    disabled
+                    className="w-full inline-flex items-center justify-center bg-slate-300 dark:bg-slate-600 text-slate-500 dark:text-slate-400 font-bold py-2 px-4 rounded-lg cursor-not-allowed"
+                >
+                    <Truck className="mr-2" size={20} /> Enable your location to see driver
+                </button>
+            )}
           </div>
-          <Truck 
-              className="absolute -top-2 w-10 h-10 text-primary transition-all duration-1000 ease-linear" 
-              style={{ left: `calc(${rickshawPosition}% - 20px)`}}
-          />
-        </div>
-        <div className="flex justify-between text-xs mt-3 text-slate-500 dark:text-slate-400">
-            <span>Dispatched</span>
-            <span>Your Location</span>
-        </div>
+        ) : (
+          <p className="text-sm text-text-light dark:text-text-dark text-center py-4">
+              {t('noActiveVehicle')}
+          </p>
+        )}
       </div>
 
       <div className="bg-card-light dark:bg-card-dark p-4 rounded-xl shadow-md transition-all hover:shadow-lg hover:-translate-y-1 animate-fade-in-up border border-border-light dark:border-border-dark" style={{animationDelay: '400ms'}}>
-        <h3 className="font-semibold text-lg mb-3 flex items-center text-heading-light dark:text-heading-dark"><BarChart2 className="mr-2 text-primary" />Community Waste Diversion</h3>
-        <div className="h-48 relative">
+        <h3 className="font-semibold text-lg mb-3 flex items-center text-heading-light dark:text-heading-dark"><BarChart2 className="mr-2 text-primary" />{t('communityWasteDiversion')}</h3>
+        <div className="h-56 relative">
             <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                     <Pie
+                        activeIndex={activeIndex}
+                        activeShape={(props) => renderActiveShape({ ...props, t })}
                         data={communityData}
-                        cx="40%"
+                        cx="50%"
                         cy="50%"
-                        innerRadius={50}
-                        outerRadius={75}
+                        innerRadius={60}
+                        outerRadius={80}
                         fill="#8884d8"
                         paddingAngle={5}
                         dataKey="value"
                         nameKey="name"
                         stroke="none"
+                        onMouseEnter={onPieEnter}
+                        onMouseLeave={onPieLeave}
+                        isAnimationActive={true}
+                        animationDuration={1000}
+                        animationEasing="ease-out"
                     >
-                        {communityData.map((entry) => (
-                            <Cell key={`cell-${entry.name}`} fill={entry.color} />
+                        {communityData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                     </Pie>
-                    <Tooltip content={<CustomTooltip />} />
-                    <Legend 
-                        iconType="circle" 
-                        layout="vertical" 
-                        verticalAlign="middle" 
-                        align="right"
-                        wrapperStyle={{ right: -10 }}
-                        formatter={(value) => <span className="text-text-light dark:text-text-dark ml-2">{value}</span>}
-                    />
                 </PieChart>
             </ResponsiveContainer>
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ left: '40%', transform: 'translateX(-50%)' }}>
-                <div className="text-center">
-                    <p className="text-3xl font-bold text-heading-light dark:text-heading-dark">{totalWaste}</p>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">kg total</p>
+            {activeIndex === null && (
+                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="text-center">
+                        <p className="text-3xl font-bold text-heading-light dark:text-heading-dark">{totalWaste}</p>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">kg {t('total')}</p>
+                    </div>
                 </div>
-            </div>
+            )}
         </div>
-        <p className="text-center text-sm text-text-light dark:text-text-dark mt-2">Total CO₂ Saved: <span className="font-bold text-green-700 dark:text-green-400">1.2 Tons</span></p>
+        <div className="mt-4 flex justify-center items-center space-x-4 md:space-x-6">
+            {communityData.map((entry) => (
+                <div key={entry.name} className="flex items-center text-sm">
+                    <span className="w-3 h-3 rounded-full mr-2 flex-shrink-0" style={{ backgroundColor: entry.color }}></span>
+                    <span className="text-text-light dark:text-text-dark">{t(entry.name.toLowerCase())} <span className="font-semibold">({((entry.value / totalWaste) * 100).toFixed(0)}%)</span></span>
+                </div>
+            ))}
+        </div>
+        <p className="text-center text-sm text-text-light dark:text-text-dark mt-4">{t('co2Saved', { amount: '1.2' })}</p>
       </div>
 
        <div className="bg-gradient-to-br from-primary-dark to-accent text-white p-5 rounded-xl shadow-lg text-center transition-all hover:shadow-xl hover:-translate-y-1 animate-fade-in-up" style={{animationDelay: '500ms'}}>

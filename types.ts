@@ -18,14 +18,29 @@ export interface User {
     householdId: string;
     identifier: string; // The unique mobile number or email used to log in
     password?: string; // User's password for login
+    role: 'household' | 'admin' | 'employee' | 'driver';
     status: 'active' | 'blocked' | 'warned';
     warningMessage?: string;
-    hasGreenBadge: boolean;
-    bookingReminders: boolean;
+    hasGreenBadge?: boolean;
+    bookingReminders?: boolean;
     profilePicture?: string;
     email?: string;
     createdAt: Date;
     outstandingBalance: number;
+    familySize: number;
+    address: {
+        area: string;
+        landmark: string;
+        pincode: string;
+    };
+    // Staff-specific properties
+    attendanceStatus?: 'present' | 'absent' | 'on_leave';
+    lastLoginTime?: Date;
+    lastLocation?: { lat: number; lng: number; timestamp: Date };
+    lastIpAddress?: string;
+    // New properties for streak
+    loginStreak?: number;
+    lastStreakIncrement?: Date;
 }
 
 export interface Payment {
@@ -61,6 +76,8 @@ export interface Booking {
     wasteType: 'Event Waste' | 'Bulk Household' | 'Garden Waste';
     status: 'Scheduled' | 'Completed';
     notes?: string;
+    attendeeCount?: number;
+    bookingFee?: number;
 }
 
 export interface Message {

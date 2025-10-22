@@ -1,36 +1,49 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 import type { User, Payment, Complaint, Booking, Message } from '../types';
-import { PAYMENT_AMOUNT } from '../constants';
+
+export interface SubscriptionPlans {
+    standard: number;
+    largeFamily: number;
+    largeFamilyThreshold: number;
+}
+
+const initialSubscriptionPlans: SubscriptionPlans = {
+    standard: 63,
+    largeFamily: 75,
+    largeFamilyThreshold: 5,
+};
 
 // --- MOCK DATABASE (for initial seeding) ---
 const initialUsers: User[] = [
-    { name: 'Shyantan Biswas', householdId: 'HH-SHYA-SWAS', identifier: '9635929052', password: 'password123', status: 'active', hasGreenBadge: true, bookingReminders: true, profilePicture: '', email: 'shyantanbiswas7@gmail.com', createdAt: new Date(2024, 5, 1), outstandingBalance: 75 },
-    { name: 'Admin Two', householdId: 'HH-ADMN-1746', identifier: '9064201746', password: 'adminpassword', status: 'active', hasGreenBadge: true, bookingReminders: false, profilePicture: '', email: 'admin2@ecotrack.com', createdAt: new Date(2024, 5, 1), outstandingBalance: 0 },
-    { name: 'Jane Doe', householdId: 'HH-JANE-9876', identifier: 'jane.doe@example.com', password: 'password456', status: 'active', hasGreenBadge: false, bookingReminders: true, profilePicture: '', email: 'jane.doe@example.com', createdAt: new Date(2024, 6, 10), outstandingBalance: 150 },
+    { name: 'Admin Two', householdId: 'HH-ADMN-1746', identifier: '9064201746', password: 'adminpassword', role: 'admin', status: 'active', hasGreenBadge: true, bookingReminders: false, profilePicture: '', email: 'admin2@ecotrack.com', createdAt: new Date(2024, 5, 1), outstandingBalance: 0, familySize: 1, address: { area: 'Admin Area', landmark: 'Admin Building', pincode: '000000' } },
+    { name: 'Jane Doe', householdId: 'HH-JANE-9876', identifier: 'jane.doe@example.com', password: 'Password@123', role: 'household', status: 'active', hasGreenBadge: false, bookingReminders: true, profilePicture: '', email: 'jane.doe@example.com', createdAt: new Date(2024, 6, 10), outstandingBalance: 150, familySize: 6, address: { area: 'Willow Creek', landmark: 'Near Park', pincode: '123456' } },
+    { name: 'SHYANTAN BISWAS', householdId: 'ADM-SHYA-9052', identifier: '9635929052', password: 'Password@123', role: 'admin', status: 'active', hasGreenBadge: true, bookingReminders: true, profilePicture: '', email: 'shyantanbiswas7@gmail.com', createdAt: new Date(2024, 5, 1), outstandingBalance: 75, familySize: 4, address: { area: 'Main Street', landmark: 'City Hall', pincode: '700001' } },
+    { name: 'Ravi Kumar', householdId: 'EMP-RAVI-1234', identifier: '8888888888', password: 'password123', role: 'employee', status: 'active', createdAt: new Date(2024, 5, 2), attendanceStatus: 'on_leave', familySize: 1, address: { area: 'Staff Quarters', landmark: 'Unit 5', pincode: '110022' }, outstandingBalance: 0 },
+    { name: 'Suresh Singh', householdId: 'DRV-SURE-5678', identifier: '9999999999', password: 'password123', role: 'driver', status: 'active', createdAt: new Date(2024, 5, 3), attendanceStatus: 'on_leave', familySize: 1, address: { area: 'Staff Quarters', landmark: 'Unit 8', pincode: '110022' }, outstandingBalance: 0 },
 ];
 
 const initialPayments: Payment[] = [
-    { id: 'TXN789123', householdId: 'HH-SHYA-SWAS', date: new Date(2024, 6, 15, 10, 30, 12), amount: 75, status: 'Paid' },
-    { id: 'TXN654321', householdId: 'HH-SHYA-SWAS', date: new Date(2024, 5, 14, 9, 15, 45), amount: 75, status: 'Paid' },
+    { id: 'TXN789123', householdId: 'ADM-SHYA-9052', date: new Date(2024, 6, 15, 10, 30, 12), amount: 75, status: 'Paid' },
+    { id: 'TXN654321', householdId: 'ADM-SHYA-9052', date: new Date(2024, 5, 14, 9, 15, 45), amount: 75, status: 'Paid' },
     { id: 'TXN112233', householdId: 'HH-JANE-9876', date: new Date(2024, 6, 14, 8, 0, 0), amount: 75, status: 'Paid' },
     { id: 'TXN445566', householdId: 'HH-JANE-9876', date: new Date(), amount: 75, status: 'Pending Verification', screenshot: 'https://via.placeholder.com/300x600.png?text=Sample+Screenshot' },
 
 ];
 
 const initialComplaints: Complaint[] = [
-    { id: 'CMPT-001', householdId: 'HH-SHYA-SWAS', date: new Date(2024, 6, 10), issue: 'Missed Pickup', status: 'Resolved', details: 'Collector did not arrive on the scheduled day.' },
-    { id: 'CMPT-002', householdId: 'HH-SHYA-SWAS', date: new Date(), issue: 'Driver Behavior', status: 'Pending', details: 'The driver was rude.' },
+    { id: 'CMPT-001', householdId: 'ADM-SHYA-9052', date: new Date(2024, 6, 10), issue: 'Missed Pickup', status: 'Resolved', details: 'Collector did not arrive on the scheduled day.' },
+    { id: 'CMPT-002', householdId: 'ADM-SHYA-9052', date: new Date(), issue: 'Driver Behavior', status: 'Pending', details: 'The driver was rude.' },
     { id: 'CMPT-003', householdId: 'HH-JANE-9876', date: new Date(2024, 6, 20), issue: 'Payment Issue', status: 'In Progress', details: 'My payment is not reflecting in the app.' },
 ];
 
 const initialBookings: Booking[] = [
-    { id: 'BK-001', householdId: 'HH-SHYA-SWAS', date: '2024-07-28', timeSlot: 'Morning', wasteType: 'Garden Waste', status: 'Completed' },
-    { id: 'BK-002', householdId: 'HH-JANE-9876', date: '2024-08-05', timeSlot: 'Afternoon', wasteType: 'Bulk Household', status: 'Scheduled' },
+    { id: 'BK-001', householdId: 'ADM-SHYA-9052', date: '2024-07-28', timeSlot: 'Morning', wasteType: 'Garden Waste', status: 'Completed' },
+    { id: 'BK-002', householdId: 'HH-JANE-9876', date: '2024-08-05', timeSlot: 'Afternoon', wasteType: 'Event Waste', status: 'Scheduled', attendeeCount: 250, bookingFee: 500 },
 ];
 
 const initialMessages: Message[] = [
     { id: 'MSG-001', recipientId: 'HH-JANE-9876', text: 'Hi Jane, please ensure your waste is properly segregated for the next pickup. Thank you!', timestamp: new Date(2024, 6, 22, 11, 45), read: false },
-    { id: 'MSG-002', recipientId: 'HH-SHYA-SWAS', text: 'Your "Driver Behavior" complaint (CMPT-002) has been reviewed. We have taken action and apologize for the inconvenience.', timestamp: new Date(), read: true },
+    { id: 'MSG-002', recipientId: 'ADM-SHYA-9052', text: 'Your "Driver Behavior" complaint (CMPT-002) has been reviewed. We have taken action and apologize for the inconvenience.', timestamp: new Date(), read: true },
 ];
 
 const initialBroadcastMessage = "Welcome! A friendly reminder that monthly payments are due by the end of the week. Thank you!";
@@ -47,7 +60,6 @@ const dateReviver = (key: string, value: any) => {
     return value;
 };
 
-// FIX: Added generic type parameter <T> to the function signature.
 // Generic function to load data from localStorage or return initial data
 const loadFromStorage = <T,>(key: string, initialValue: T): T => {
     try {
@@ -56,7 +68,6 @@ const loadFromStorage = <T,>(key: string, initialValue: T): T => {
             return JSON.parse(item, dateReviver) as T;
         }
     } catch (error) {
-        // FIX: Correctly reference 'key' and 'error' variables in the console message.
         console.error(`Error loading ${key} from storage, using initial value.`, error);
     }
     // If no item, set the initial value in storage for next time
@@ -65,7 +76,6 @@ const loadFromStorage = <T,>(key: string, initialValue: T): T => {
 };
 
 
-// FIX: Defined the DataContextType interface.
 interface DataContextType {
   users: User[];
   payments: Payment[];
@@ -73,6 +83,7 @@ interface DataContextType {
   bookings: Booking[];
   messages: Message[];
   broadcastMessage: string | null;
+  subscriptionPlans: SubscriptionPlans;
   addUser: (user: User) => void;
   updateUser: (updatedUser: User) => void;
   deleteUser: (householdId: string) => void;
@@ -86,31 +97,31 @@ interface DataContextType {
   addMessage: (recipientId: string, text: string) => void;
   markMessagesAsRead: (householdId: string) => void;
   updateBroadcastMessage: (message: string) => void;
+  updateUserAttendance: (householdId: string, status: 'present' | 'absent' | 'on_leave', loginTime: Date, ipAddress: string) => void;
+  updateUserLocation: (householdId: string, location: { lat: number, lng: number, timestamp: Date }) => void;
+  updateSubscriptionPlans: (newPlans: SubscriptionPlans) => void;
 }
 
-// FIX: Created the context with the correct type.
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
-// FIX: Created and exported the DataProvider component, which was missing.
-// This component encapsulates all the state management logic.
 export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  // FIX: Used useState hook correctly to manage state for users, payments, etc.
   const [users, setUsers] = useState<User[]>(() => loadFromStorage('ecotrack_users', initialUsers));
   const [payments, setPayments] = useState<Payment[]>(() => loadFromStorage('ecotrack_payments', initialPayments));
   const [complaints, setComplaints] = useState<Complaint[]>(() => loadFromStorage('ecotrack_complaints', initialComplaints));
   const [bookings, setBookings] = useState<Booking[]>(() => loadFromStorage('ecotrack_bookings', initialBookings));
   const [messages, setMessages] = useState<Message[]>(() => loadFromStorage('ecotrack_messages', initialMessages));
   const [broadcastMessage, setBroadcastMessage] = useState<string | null>(() => loadFromStorage('ecotrack_broadcast', initialBroadcastMessage));
+  const [subscriptionPlans, setSubscriptionPlans] = useState<SubscriptionPlans>(() => loadFromStorage('ecotrack_subscription_plans', initialSubscriptionPlans));
 
-  // FIX: Used useEffect hooks to persist state changes to localStorage.
+
   useEffect(() => { localStorage.setItem('ecotrack_users', JSON.stringify(users)); }, [users]);
   useEffect(() => { localStorage.setItem('ecotrack_payments', JSON.stringify(payments)); }, [payments]);
   useEffect(() => { localStorage.setItem('ecotrack_complaints', JSON.stringify(complaints)); }, [complaints]);
   useEffect(() => { localStorage.setItem('ecotrack_bookings', JSON.stringify(bookings)); }, [bookings]);
   useEffect(() => { localStorage.setItem('ecotrack_messages', JSON.stringify(messages)); }, [messages]);
   useEffect(() => { localStorage.setItem('ecotrack_broadcast', JSON.stringify(broadcastMessage)); }, [broadcastMessage]);
+  useEffect(() => { localStorage.setItem('ecotrack_subscription_plans', JSON.stringify(subscriptionPlans)); }, [subscriptionPlans]);
 
-  // FIX: Defined all data manipulation functions inside the provider component scope.
   const addUser = (user: User) => {
     setUsers(prev => [...prev, user]);
   }
@@ -147,7 +158,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     finalPayment = { ...payment, status: 'Paid' };
                     // Deduct amount from user's balance
                     setUsers(prevUsers => prevUsers.map(u => 
-                        u.householdId === payment.householdId && typeof u.outstandingBalance === 'number'
+                        u.householdId === payment.householdId
                         ? { ...u, outstandingBalance: u.outstandingBalance - payment.amount }
                         : u
                     ));
@@ -187,7 +198,14 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setComplaints(prev => prev.map(c => c.id === updatedComplaint.id ? updatedComplaint : c));
   };
   
-  const addBooking = (booking: Booking) => setBookings(prev => [booking, ...prev]);
+  const addBooking = (booking: Booking) => {
+    if (booking.bookingFee > 0) {
+        setUsers(prev => prev.map(u => 
+            u.householdId === booking.householdId ? { ...u, outstandingBalance: u.outstandingBalance + booking.bookingFee } : u
+        ));
+    }
+    setBookings(prev => [booking, ...prev]);
+  };
   
   const updateBooking = (updatedBooking: Booking) => {
       setBookings(prev => prev.map(b => b.id === updatedBooking.id ? updatedBooking : b));
@@ -212,10 +230,25 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   
   const updateBroadcastMessage = (message: string) => {
     setBroadcastMessage(message);
-  }
+  };
 
-  // FIX: Bundled all state and functions into a value object to pass to the provider.
-  const value = { users, payments, complaints, bookings, messages, broadcastMessage, addUser, updateUser, deleteUser, clearUserWarning, addPayment, updatePayment, addComplaint, updateComplaint, addBooking, updateBooking, addMessage, markMessagesAsRead, updateBroadcastMessage };
+  const updateUserAttendance = (householdId: string, status: 'present' | 'absent' | 'on_leave', loginTime: Date, ipAddress: string) => {
+    setUsers(prev => prev.map(u => 
+        u.householdId === householdId ? { ...u, attendanceStatus: status, lastLoginTime: loginTime, lastIpAddress: ipAddress } : u
+    ));
+  };
+
+  const updateUserLocation = (householdId: string, location: { lat: number, lng: number, timestamp: Date }) => {
+    setUsers(prev => prev.map(u => 
+        u.householdId === householdId ? { ...u, lastLocation: location } : u
+    ));
+  };
+  
+  const updateSubscriptionPlans = (newPlans: SubscriptionPlans) => {
+    setSubscriptionPlans(newPlans);
+  };
+
+  const value = { users, payments, complaints, bookings, messages, broadcastMessage, subscriptionPlans, addUser, updateUser, deleteUser, clearUserWarning, addPayment, updatePayment, addComplaint, updateComplaint, addBooking, updateBooking, addMessage, markMessagesAsRead, updateBroadcastMessage, updateUserAttendance, updateUserLocation, updateSubscriptionPlans };
 
   return (
     <DataContext.Provider value={value}>
@@ -224,7 +257,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   );
 };
 
-// FIX: Created and exported the useData custom hook for consuming the context.
 export const useData = (): DataContextType => {
   const context = useContext(DataContext);
   if (!context) {

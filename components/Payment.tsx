@@ -4,7 +4,7 @@ import { CheckCircle, Wallet, X, Loader2, QrCode, UploadCloud, Check, XCircle, S
 
 import type { Payment, View } from '../types';
 import { ViewType } from '../types';
-import { PAYMENT_AMOUNT, UPI_PAYMENT_URL, UPI_ID } from '../constants';
+import { generateUpiUrl, UPI_ID } from '../constants';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 
@@ -24,12 +24,14 @@ const PaymentComponent: React.FC<PaymentComponentProps> = ({ setCurrentView }) =
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submissionError, setSubmissionError] = useState('');
     const fileInputRef = useRef<HTMLInputElement>(null);
-
-    // New state for OTP verification
+    
     const [otp, setOtp] = useState('');
     const [generatedOtp, setGeneratedOtp] = useState('');
     const [otpError, setOtpError] = useState('');
     const [resendTimer, setResendTimer] = useState(0);
+
+    const paymentAmount = user?.outstandingBalance ?? 0;
+    const upiPaymentUrl = generateUpiUrl(paymentAmount, `Payment for ${user?.householdId}`);
 
     useEffect(() => {
         let timerId: number;
@@ -56,7 +58,6 @@ const PaymentComponent: React.FC<PaymentComponentProps> = ({ setCurrentView }) =
         if (!user || !screenshotPreview) return;
         setIsSubmitting(true);
         
-        // Simulate sending OTP
         setTimeout(() => {
             const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
             console.log(`Generated OTP for user ${user.identifier}: ${newOtp}`); // For debugging
@@ -83,7 +84,7 @@ const PaymentComponent: React.FC<PaymentComponentProps> = ({ setCurrentView }) =
             id: `TXN${Date.now()}`,
             householdId: user!.householdId,
             date: new Date(),
-            amount: PAYMENT_AMOUNT,
+            amount: paymentAmount,
             status: 'Pending Verification',
             screenshot: screenshotPreview,
         };
@@ -110,52 +111,57 @@ const PaymentComponent: React.FC<PaymentComponentProps> = ({ setCurrentView }) =
         }
     };
 
-
     const renderPayStep = () => (
         <div className="text-center animate-scale-in">
-            <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent mb-2">Monthly Subscription</h2>
+            <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent mb-2">Pay Your Bill</h2>
             <p className="text-text-light dark:text-text-dark mb-6">Your contribution keeps our community clean.</p>
-
-            {user && typeof user.outstandingBalance === 'number' && user.outstandingBalance > 0 && (
-                <p className="mb-4 text-lg text-red-500 font-semibold animate-pulse">
-                    Outstanding Balance: ₹{user.outstandingBalance.toFixed(2)}
-                </p>
-            )}
-
+            
             <div className="bg-card-light dark:bg-card-dark p-1 rounded-xl shadow-lg inline-block relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-r from-primary to-accent -m-0.5 rounded-xl"></div>
                 <div className="relative bg-card-light dark:bg-card-dark p-8 rounded-lg">
-                    <p className="text-slate-500 dark:text-slate-400 text-lg">Amount to Pay</p>
-                    <p className="text-5xl font-bold text-primary my-2">₹{PAYMENT_AMOUNT}</p>
+                    <p className="text-slate-500 dark:text-slate-400 text-lg">Amount Due</p>
+                    {paymentAmount > 0 ? (
+                        <p className="text-5xl font-bold text-primary my-2">₹{paymentAmount.toFixed(2)}</p>
+                    ) : (
+                         <p className="text-3xl font-bold text-success my-2 flex items-center"><CheckCircle className="mr-2"/> Cleared!</p>
+                    )}
                     <p className="text-xs text-slate-400 dark:text-slate-500">for {new Date().toLocaleString('default', { month: 'long' })}</p>
                 </div>
             </div>
             
-            <div className="mt-8 max-w-sm mx-auto space-y-4">
-                 <a 
-                    href={UPI_PAYMENT_URL}
-                    className="w-full bg-gradient-to-r from-secondary to-slate-700 dark:from-slate-600 dark:to-slate-800 text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center text-lg shadow-md hover:shadow-lg transition-all transform hover:scale-105"
-                >
-                    <Wallet className="mr-3" /> Pay with UPI App
-                </a>
-                <button 
-                    onClick={() => setShowQrModal(true)}
-                    className="w-full bg-gradient-to-r from-secondary to-slate-700 dark:from-slate-600 dark:to-slate-800 text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center text-lg shadow-md hover:shadow-lg transition-all transform hover:scale-105"
-                >
-                    <QrCode className="mr-3" /> Scan QR Code
-                </button>
-            </div>
-            
-            <div className="mt-8 max-w-sm mx-auto p-4 rounded-lg bg-slate-100 dark:bg-slate-800/50 border border-border-light dark:border-border-dark">
-                <p className="text-sm text-text-light dark:text-text-dark mb-4">After paying, upload a screenshot to confirm.</p>
-                 <input type="file" accept="image/*" ref={fileInputRef} onChange={handleFileSelect} className="hidden" />
-                 <button 
-                    onClick={() => fileInputRef.current?.click()}
-                    className="w-full bg-gradient-to-r from-primary to-accent text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center text-lg shadow-lg hover:shadow-glow-primary transition-all transform hover:scale-105"
-                >
-                    <UploadCloud className="mr-3" /> Upload Screenshot
-                </button>
-            </div>
+            {paymentAmount > 0 ? (
+                <>
+                <div className="mt-8 max-w-sm mx-auto space-y-4">
+                     <a 
+                        href={upiPaymentUrl}
+                        className="w-full bg-gradient-to-r from-secondary to-slate-700 dark:from-slate-600 dark:to-slate-800 text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center text-lg shadow-md hover:shadow-lg transition-all transform hover:scale-105"
+                    >
+                        <Wallet className="mr-3" /> Pay with UPI App
+                    </a>
+                    <button 
+                        onClick={() => setShowQrModal(true)}
+                        className="w-full bg-gradient-to-r from-secondary to-slate-700 dark:from-slate-600 dark:to-slate-800 text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center text-lg shadow-md hover:shadow-lg transition-all transform hover:scale-105"
+                    >
+                        <QrCode className="mr-3" /> Scan QR Code
+                    </button>
+                </div>
+                
+                <div className="mt-8 max-w-sm mx-auto p-4 rounded-lg bg-slate-100 dark:bg-slate-800/50 border border-border-light dark:border-border-dark">
+                    <p className="text-sm text-text-light dark:text-text-dark mb-4">After paying, upload a screenshot to confirm.</p>
+                     <input type="file" accept="image/*" ref={fileInputRef} onChange={handleFileSelect} className="hidden" />
+                     <button 
+                        onClick={() => fileInputRef.current?.click()}
+                        className="w-full bg-gradient-to-r from-primary to-accent text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center text-lg shadow-lg hover:shadow-glow-primary transition-all transform hover:scale-105"
+                    >
+                        <UploadCloud className="mr-3" /> Upload Screenshot
+                    </button>
+                </div>
+                </>
+            ) : (
+                <div className="mt-8 max-w-sm mx-auto p-4">
+                    <p className="text-lg text-success font-semibold">You have no outstanding balance. Thank you!</p>
+                </div>
+            )}
         </div>
     );
 
@@ -256,7 +262,6 @@ const PaymentComponent: React.FC<PaymentComponentProps> = ({ setCurrentView }) =
         </div>
     );
 
-
     return (
         <>
             {step === 'pay' && renderPayStep()}
@@ -280,10 +285,10 @@ const PaymentComponent: React.FC<PaymentComponentProps> = ({ setCurrentView }) =
                         <div className="p-6">
                             <p className="text-sm text-text-light dark:text-text-dark mb-4">Use any UPI app</p>
                             <div className="bg-white p-4 rounded-lg inline-block ring-4 ring-slate-100 dark:ring-slate-700">
-                                <QRCode value={UPI_PAYMENT_URL} size={180} />
+                                <QRCode value={upiPaymentUrl} size={180} />
                             </div>
                             <div className="my-4">
-                                <p className="text-slate-500 dark:text-slate-400">Amount: <span className="font-bold text-primary">₹{PAYMENT_AMOUNT}</span></p>
+                                <p className="text-slate-500 dark:text-slate-400">Amount: <span className="font-bold text-primary">₹{paymentAmount.toFixed(2)}</span></p>
                                 <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">UPI ID: {UPI_ID}</p>
                             </div>
                         </div>

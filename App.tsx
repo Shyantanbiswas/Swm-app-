@@ -1,7 +1,7 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Home, IndianRupee, History, MessageSquareWarning, Bot, ShoppingBasket, User as UserIcon, Mail } from 'lucide-react';
 
-import type { View } from './types';
+import type { View, User } from './types';
 import { ViewType } from './types';
 import Dashboard from './components/Dashboard';
 import PaymentComponent from './components/Payment';
@@ -22,11 +22,13 @@ import AuthFlow from './components/AuthFlow';
 import AdminApp from './admin/AdminApp';
 import LoginSelector from './components/LoginSelector';
 import AdminAuthFlow from './components/AdminAuthFlow';
+import StaffAuthFlow from './components/StaffAuthFlow';
+import StaffApp from './components/StaffApp';
 
 // This is the main user-facing application component
-const UserApp: React.FC = () => {
+const UserApp: React.FC<{ users: User[] }> = ({ users }) => {
   const { user } = useAuth();
-  const { payments, complaints, bookings, addComplaint, updateComplaint, broadcastMessage, clearUserWarning } = useData();
+  const { payments, complaints, bookings, addComplaint, updateComplaint, broadcastMessage, clearUserWarning, updateUserLocation } = useData();
   const [currentView, setCurrentView] = useState<View>(ViewType.Dashboard);
   const [isChatbotOpen, setChatbotOpen] = useState<boolean>(false);
   const [isBroadcastVisible, setBroadcastVisible] = useState(false);
@@ -46,6 +48,35 @@ const UserApp: React.FC = () => {
     }
   }, [broadcastMessage, user]);
 
+  // Continuously track user's location while the app is active
+  const locationWatcherId = useRef<number | null>(null);
+  useEffect(() => {
+      if (user && navigator.geolocation) {
+           // Clear any existing watcher to prevent duplicates
+            if (locationWatcherId.current !== null) {
+                navigator.geolocation.clearWatch(locationWatcherId.current);
+            }
+
+          locationWatcherId.current = navigator.geolocation.watchPosition(
+              (position) => {
+                  const { latitude, longitude } = position.coords;
+                  const location = { lat: latitude, lng: longitude, timestamp: new Date() };
+                  updateUserLocation(user.householdId, location);
+              },
+              (error) => {
+                  console.warn("Could not track household location:", error.message);
+              },
+              { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 } // High accuracy for live tracking
+          );
+      }
+      return () => {
+          if (locationWatcherId.current !== null) {
+              navigator.geolocation.clearWatch(locationWatcherId.current);
+          }
+      };
+  }, [user, updateUserLocation]);
+
+
   const handleDismissBroadcast = () => {
     setBroadcastVisible(false);
     if(broadcastMessage) {
@@ -64,7 +95,7 @@ const UserApp: React.FC = () => {
     if (!user) return null;
     switch (currentView) {
       case ViewType.Dashboard:
-        return <Dashboard user={user} bookings={userBookings} />;
+        return <Dashboard user={user} bookings={userBookings} users={users} />;
       case ViewType.Payment:
         return <PaymentComponent setCurrentView={setCurrentView} />;
       case ViewType.History:
@@ -80,7 +111,7 @@ const UserApp: React.FC = () => {
       case ViewType.Profile:
         return <ProfileComponent />;
       default:
-        return <Dashboard user={user} bookings={userBookings} />;
+        return <Dashboard user={user} bookings={userBookings} users={users} />;
     }
   };
 
@@ -113,14 +144,14 @@ const UserApp: React.FC = () => {
 const App: React.FC = () => {
   const { theme } = useTheme();
   const { isLoggedIn, user, logout } = useAuth();
-  const [loginMode, setLoginMode] = useState<'selector' | 'user' | 'admin'>('selector');
+  const { users } = useData();
+  const [loginMode, setLoginMode] = useState<'selector' | 'user' | 'admin' | 'employee' | 'driver'>('selector');
   
   // States are derived from localStorage on each render.
   const isAdminMode = localStorage.getItem('isAdminMode') === 'true';
   const isAdminLoggedIn = localStorage.getItem('isAdminLoggedIn') === 'true';
 
-  // The admin user is hardcoded for this demo
-  const isAdmin = ['9635929052', '9064201746'].includes(user?.identifier || '');
+  const isAdmin = user?.role === 'admin';
   
   const handleAdminLogout = () => {
       logout(); // Full logout to return to selector
@@ -134,20 +165,29 @@ const App: React.FC = () => {
             return <AuthFlow onBack={() => setLoginMode('selector')} />;
         case 'admin':
             return <AdminAuthFlow onBack={() => setLoginMode('selector')} />;
+        case 'employee':
+            return <StaffAuthFlow role="employee" onBack={() => setLoginMode('selector')} />;
+        case 'driver':
+            return <StaffAuthFlow role="driver" onBack={() => setLoginMode('selector')} />;
         case 'selector':
         default:
             return <LoginSelector onSelectMode={setLoginMode} />;
     }
   }
   
-  // If user is logged in, check if we should be in admin mode
-  if (isAdminMode && isAdminLoggedIn && isAdmin) {
+  // If user is logged in, check their role to render the correct app
+  if (user.role === 'admin' && isAdminMode && isAdminLoggedIn) {
       return <AdminApp handleAdminLogout={handleAdminLogout} />;
   }
 
+  if (user.role === 'employee' || user.role === 'driver') {
+      return <StaffApp />;
+  }
+
+  // Default to household user app
   return (
     <div className={`min-h-screen font-sans transition-colors duration-300 ${theme} bg-gradient-to-b from-slate-50 to-slate-100 dark:from-background-dark dark:to-slate-900`}>
-       <UserApp />
+       <UserApp users={users} />
     </div>
   );
 };

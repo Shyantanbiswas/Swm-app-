@@ -4,6 +4,7 @@ import App from './App';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
 import { DataProvider } from './context/DataContext';
+import { LanguageProvider } from './context/LanguageContext';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -14,11 +15,13 @@ const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
     <ThemeProvider>
-      <DataProvider>
-        <AuthProvider>
-          <App />
-        </AuthProvider>
-      </DataProvider>
+      <LanguageProvider>
+        <DataProvider>
+          <AuthProvider>
+            <App />
+          </AuthProvider>
+        </DataProvider>
+      </LanguageProvider>
     </ThemeProvider>
   </React.StrictMode>
 );

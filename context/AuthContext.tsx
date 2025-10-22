@@ -1,7 +1,6 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 import type { User } from '../types';
 import { useData } from './DataContext';
-import { PAYMENT_AMOUNT } from '../constants';
 
 const USER_ID_STORAGE_KEY = 'ecotrack-user-id';
 
@@ -11,12 +10,21 @@ interface LoginResult {
     user?: User;
 }
 
+interface SignupParams {
+    name: string;
+    identifier: string;
+    password?: string;
+    familySize: number;
+    address: User['address'];
+}
+
 interface AuthContextType {
   isLoggedIn: boolean;
   user: User | null;
   login: (identifier: string, password?: string, rememberMe?: boolean) => Promise<LoginResult>;
-  signup: (name: string, identifier: string, password?: string) => Promise<LoginResult>;
+  signup: (params: SignupParams) => Promise<LoginResult>;
   loginAsAdmin: (identifier: string) => Promise<LoginResult>;
+  loginAsStaff: (identifier: string, role: 'employee' | 'driver') => Promise<LoginResult>;
   logout: () => void;
   toggleBookingReminders: () => void;
   updateUserName: (newName: string) => void;
@@ -28,7 +36,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [loggedInUserId, setLoggedInUserId] = useState<string | null>(null);
-  const { users, addUser, updateUser } = useData();
+  const { users, addUser, updateUser, subscriptionPlans } = useData();
 
   const user = users.find(u => u.householdId === loggedInUserId) || null;
   const isLoggedIn = !!user;
@@ -49,6 +57,38 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [users]);
 
+  const handleStreakLogic = (user: User): Partial<User> => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const lastIncrement = user.lastStreakIncrement ? new Date(user.lastStreakIncrement) : null;
+    if (lastIncrement) {
+        lastIncrement.setHours(0, 0, 0, 0);
+    }
+
+    // If last increment was not today
+    if (!lastIncrement || lastIncrement.getTime() !== today.getTime()) {
+        const yesterday = new Date(today);
+        yesterday.setDate(today.getDate() - 1);
+
+        if (lastIncrement && lastIncrement.getTime() === yesterday.getTime()) {
+            // Streak continues
+            return {
+                loginStreak: (user.loginStreak || 0) + 1,
+                lastStreakIncrement: new Date(),
+            };
+        } else {
+            // Streak resets
+            return {
+                loginStreak: 1,
+                lastStreakIncrement: new Date(),
+            };
+        }
+    }
+    // No changes if already incremented today
+    return {};
+  };
+
   const login = async (identifier: string, password?: string, rememberMe?: boolean): Promise<LoginResult> => {
     const isEmail = identifier.includes('@');
     const normalizedIdentifier = isEmail ? identifier.toLowerCase() : identifier.replace(/[^0-9]/g, '');
@@ -58,6 +98,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (!existingUser) {
         return { success: false, message: 'No account found with this identifier.' };
     }
+    // Allow special admin '9635929052' to log in as a household user
+    if (existingUser.role !== 'household' && existingUser.identifier !== '9635929052') {
+        return { success: false, message: 'Access denied for this portal.'};
+    }
     if (existingUser.status === 'blocked') {
         return { success: false, message: 'Your account has been blocked. Please contact support.' };
     }
@@ -65,37 +109,62 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return { success: false, message: 'Invalid password.' };
     }
     
+    const mockIpAddress = `103.12.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`;
+    const streakUpdates = handleStreakLogic(existingUser);
+    const updatedUser = { ...existingUser, lastLoginTime: new Date(), lastIpAddress: mockIpAddress, ...streakUpdates };
+    updateUser(updatedUser);
+
     if (rememberMe) {
         localStorage.setItem(USER_ID_STORAGE_KEY, existingUser.householdId);
     } else {
         sessionStorage.setItem(USER_ID_STORAGE_KEY, existingUser.householdId);
     }
     setLoggedInUserId(existingUser.householdId);
-    return { success: true, user: existingUser };
+    return { success: true, user: updatedUser };
   }
   
-  const signup = async (name: string, identifier: string, password?: string): Promise<LoginResult> => {
+  const isStrongPassword = (password: string): boolean => {
+    const minLength = 8;
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasLowerCase = /[a-z]/.test(password);
+    const hasNumbers = /\d/.test(password);
+    const hasNonalphas = /\W|_/.test(password); // Includes underscore
+    return password.length >= minLength && hasUpperCase && hasLowerCase && hasNumbers && hasNonalphas;
+  };
+
+  const signup = async (params: SignupParams): Promise<LoginResult> => {
+    const { name, identifier, password, familySize, address } = params;
     const isEmail = identifier.includes('@');
     const normalizedIdentifier = isEmail ? identifier.toLowerCase() : identifier.replace(/[^0-9]/g, '');
 
     if (users.some(u => u.identifier === normalizedIdentifier)) {
         return { success: false, message: 'An account with this identifier already exists.' };
     }
+    
+    if (!password || !isStrongPassword(password)) {
+        return { success: false, message: 'Password is not strong enough. It must be at least 8 characters and include uppercase, lowercase, a number, and a special character.' };
+    }
 
     const householdId = `HH-${normalizedIdentifier.slice(0, 4).toUpperCase()}-${Date.now().toString().slice(-4)}`;
+    const balance = familySize > subscriptionPlans.largeFamilyThreshold ? subscriptionPlans.largeFamily : subscriptionPlans.standard;
+
     const newUser: User = {
         name,
         householdId,
         identifier: normalizedIdentifier,
         password,
+        role: 'household',
         status: 'active',
         hasGreenBadge: false,
         bookingReminders: true,
         profilePicture: '',
         email: isEmail ? normalizedIdentifier : '',
         createdAt: new Date(),
-        // FIX: Add missing outstandingBalance property for new users.
-        outstandingBalance: PAYMENT_AMOUNT,
+        outstandingBalance: balance,
+        familySize,
+        address,
+        loginStreak: 1,
+        lastStreakIncrement: new Date(),
     };
     addUser(newUser);
 
@@ -105,7 +174,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }
 
   const loginAsAdmin = async (identifier: string): Promise<LoginResult> => {
-      const existingUser = users.find(u => u.identifier === identifier);
+      const existingUser = users.find(u => u.identifier === identifier && u.role === 'admin');
       if (!existingUser) {
            return { success: false, message: 'Admin account not found.' };
       }
@@ -118,6 +187,43 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       localStorage.setItem('isAdminLoggedIn', 'true');
       setLoggedInUserId(existingUser.householdId);
       return { success: true };
+  };
+
+  const loginAsStaff = async (identifier: string, role: 'employee' | 'driver'): Promise<LoginResult> => {
+    // Allow login if the user has the specific role OR if the user is the special admin
+    const existingUser = users.find(u => u.identifier === identifier && (u.role === role || u.identifier === '9635929052'));
+    if (!existingUser) {
+        return { success: false, message: `No ${role} account found with this number.` };
+    }
+    if (existingUser.status === 'blocked') {
+        return { success: false, message: 'Your account has been blocked. Please contact support.' };
+    }
+
+    // Attendance Logic: Present if login is between 10:00 AM and 10:30 AM
+    const now = new Date();
+    const tenAM = new Date();
+    tenAM.setHours(10, 0, 0, 0);
+    const tenThirtyAM = new Date();
+    tenThirtyAM.setHours(10, 30, 0, 0);
+    const attendanceStatus: 'present' | 'absent' = (now >= tenAM && now <= tenThirtyAM) ? 'present' : 'absent';
+    
+    // Simulate getting IP address
+    const mockIpAddress = `103.12.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`;
+
+    const streakUpdates = handleStreakLogic(existingUser);
+    
+    const updatedUser: User = {
+        ...existingUser,
+        attendanceStatus,
+        lastLoginTime: now,
+        lastIpAddress: mockIpAddress,
+        ...streakUpdates,
+    };
+    updateUser(updatedUser);
+
+    sessionStorage.setItem(USER_ID_STORAGE_KEY, existingUser.householdId); // Use session storage for staff
+    setLoggedInUserId(existingUser.householdId);
+    return { success: true, user: updatedUser };
   };
 
   const logout = () => {
@@ -161,7 +267,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   return (
-    <AuthContext.Provider value={{ isLoggedIn, user, login, signup, loginAsAdmin, logout, toggleBookingReminders, updateUserName, updateUserEmail, updateUserProfilePicture }}>
+    <AuthContext.Provider value={{ isLoggedIn, user, login, signup, loginAsAdmin, loginAsStaff, logout, toggleBookingReminders, updateUserName, updateUserEmail, updateUserProfilePicture }}>
       {children}
     </AuthContext.Provider>
   );

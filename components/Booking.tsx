@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { Booking } from '../types';
-import { Calendar, Clock, Check, Bell, CalendarDays, Box, Leaf } from 'lucide-react';
+import { Calendar, Clock, Check, Bell, CalendarDays, Box, Leaf, Users, IndianRupee } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
-import { SUPPORT_EMAIL, PAYMENT_AMOUNT } from '../constants';
+import { SUPPORT_EMAIL } from '../constants';
 
 const BookingComponent: React.FC = () => {
     const { user, toggleBookingReminders } = useAuth();
@@ -12,8 +12,22 @@ const BookingComponent: React.FC = () => {
     const [date, setDate] = useState('');
     const [timeSlot, setTimeSlot] = useState<'Morning' | 'Afternoon'>('Morning');
     const [notes, setNotes] = useState('');
+    const [attendeeCount, setAttendeeCount] = useState<number | ''>('');
+    const [bookingFee, setBookingFee] = useState(0);
     const [isBooked, setIsBooked] = useState(false);
     const [confirmationMessage, setConfirmationMessage] = useState('');
+
+    useEffect(() => {
+        if (wasteType === 'Event Waste' && typeof attendeeCount === 'number' && attendeeCount > 0) {
+            if (attendeeCount <= 300) setBookingFee(500);
+            else if (attendeeCount <= 600) setBookingFee(700);
+            else if (attendeeCount <= 1000) setBookingFee(1200);
+            else setBookingFee(0); // Indicates admin adjustment needed
+        } else {
+            setBookingFee(0);
+        }
+    }, [attendeeCount, wasteType]);
+
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -30,11 +44,17 @@ const BookingComponent: React.FC = () => {
             wasteType,
             notes,
             status: 'Scheduled',
+            attendeeCount: wasteType === 'Event Waste' ? Number(attendeeCount) : undefined,
+            bookingFee: wasteType === 'Event Waste' ? bookingFee : undefined,
         };
         addBooking(newBooking);
 
         // Trigger email notification
         const subject = `New eCart Booking Confirmation: ${newBooking.id}`;
+        const feeDetails = newBooking.bookingFee > 0 
+            ? `Calculated Fee: ₹${newBooking.bookingFee}` 
+            : (newBooking.attendeeCount > 1000 ? 'Fee to be adjusted by admin.' : 'Standard fee applies.');
+        
         const body = `A new special collection has been booked by a user.
 
 Booking Details:
@@ -43,6 +63,7 @@ Booking ID: ${newBooking.id}
 Date: ${new Date(newBooking.date).toLocaleDateString(undefined, { timeZone: 'UTC' })}
 Time Slot: ${newBooking.timeSlot}
 Waste Type: ${newBooking.wasteType}
+${newBooking.attendeeCount ? `Attendees: ${newBooking.attendeeCount}` : ''}
 Notes: ${newBooking.notes || 'N/A'}
 
 User Details:
@@ -53,28 +74,24 @@ Email: ${user.email || 'Not provided in profile'}
 
 Payment Details:
 ----------------
-The standard collection fee is ₹${PAYMENT_AMOUNT}.
-Please coordinate with the user for payment confirmation.
+${feeDetails}
+Please coordinate with the user for payment confirmation. The amount has been added to their outstanding balance.
 
 Thank you,
 EcoTrack App System
         `;
         const mailtoLink = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body.trim())}`;
-        window.open(mailtoLink, '_blank');
+        // window.open(mailtoLink, '_blank'); // This can be disruptive, so commented out for now.
 
         setIsBooked(true);
-
-        if (user?.bookingReminders) {
-            setConfirmationMessage("Your eCart has been scheduled. We'll send you a reminder a day before collection.");
-        } else {
-            setConfirmationMessage("Your eCart has been scheduled. You can see the details in your booking history below.");
-        }
+        setConfirmationMessage(`Your eCart has been scheduled. ${bookingFee > 0 ? `A fee of ₹${bookingFee} has been added to your balance.` : ''}`);
         
         // Reset form
         setDate('');
         setNotes('');
         setTimeSlot('Morning');
         setWasteType('Bulk Household');
+        setAttendeeCount('');
 
         setTimeout(() => setIsBooked(false), 5000); // Hide success message after 5s
     };
@@ -141,10 +158,24 @@ EcoTrack App System
                                 <option>Garden Waste</option>
                             </select>
                         </div>
+                        {wasteType === 'Event Waste' && (
+                            <div className="animate-fade-in-down">
+                                <label className="block text-sm font-medium text-text-light dark:text-text-dark mb-1">Number of Attendees</label>
+                                <div className="relative">
+                                    <Users className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                                    <input type="number" value={attendeeCount} onChange={e => setAttendeeCount(e.target.value === '' ? '' : parseInt(e.target.value, 10))} className="w-full p-2 pl-10 bg-background-light dark:bg-slate-700 border border-border-light dark:border-border-dark rounded-md focus:ring-primary focus:border-primary text-text-light dark:text-text-dark" placeholder="e.g., 250"/>
+                                </div>
+                                <div className="mt-2 p-3 bg-primary/5 dark:bg-primary/10 rounded-lg text-center">
+                                    {bookingFee > 0 && <p className="text-primary font-bold text-lg flex items-center justify-center"><IndianRupee size={18} className="mr-1"/> {bookingFee.toFixed(2)} Fee</p>}
+                                    {attendeeCount > 1000 && <p className="text-info text-sm font-semibold">Fee to be adjusted by admin for over 1000 attendees.</p>}
+                                    {!bookingFee && attendeeCount <= 1000 && <p className="text-sm text-slate-500">Enter attendees to calculate fee.</p>}
+                                </div>
+                            </div>
+                        )}
                          <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-text-light dark:text-text-dark mb-1">Preferred Date</label>
-                                <input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-full p-2 bg-background-light dark:bg-slate-700 border border-border-light dark:border-border-dark rounded-md focus:ring-primary focus:border-primary text-text-light dark:text-text-dark" min={new Date().toISOString().split("T")[0]}/>
+                                <input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-full p-2 bg-background-light dark:bg-slate-700 border border-border-light dark:border-border-dark rounded-md focus:ring-primary focus:border-primary text-text-light dark:text-text-dark" min={new Date(new Date().setDate(new Date().getDate() + 1)).toISOString().split("T")[0]}/>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-text-light dark:text-text-dark mb-1">Time Slot</label>
@@ -180,6 +211,7 @@ EcoTrack App System
                                     <div>
                                         <p className="font-bold text-heading-light dark:text-heading-dark">{booking.wasteType}</p>
                                         <p className="text-sm text-text-light dark:text-text-dark flex items-center"><Calendar size={14} className="mr-1.5"/> {new Date(booking.date).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })} at {booking.timeSlot}</p>
+                                        {booking.bookingFee && <p className="text-sm font-semibold text-primary flex items-center mt-1"><IndianRupee size={14} className="mr-1"/> Fee: {booking.bookingFee.toFixed(2)}</p>}
                                     </div>
                                 </div>
                                 {getStatusChip(booking.status)}

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, Users, ShoppingBasket, MessageSquareWarning, IndianRupee, LogOut, Sun, Moon, Recycle, Megaphone } from 'lucide-react';
+import { LayoutDashboard, Users, ShoppingBasket, MessageSquareWarning, IndianRupee, LogOut, Sun, Moon, Recycle, Megaphone, Target, Bot, Settings, Car } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
@@ -9,8 +9,12 @@ import AdminBookingManagement from './AdminBookingManagement';
 import AdminComplaintManagement from './AdminComplaintManagement';
 import AdminPaymentManagement from './AdminPaymentManagement';
 import AdminBroadcast from './AdminBroadcast';
+import AdminStaffTracking from './AdminStaffTracking';
+import AdminAIManagement from './AdminAIManagement';
+import AdminSubscriptionManagement from './AdminSubscriptionManagement';
+import AdminIPTracker from './AdminIPTracker';
 
-type AdminView = 'dashboard' | 'users' | 'bookings' | 'complaints' | 'payments' | 'broadcast';
+type AdminView = 'dashboard' | 'users' | 'bookings' | 'complaints' | 'payments' | 'broadcast' | 'employees' | 'drivers' | 'ai-management' | 'subscription-management' | 'ip-tracker';
 
 interface AdminAppProps {
     handleAdminLogout: () => void;
@@ -36,6 +40,16 @@ const AdminApp: React.FC<AdminAppProps> = ({ handleAdminLogout }) => {
                 return <AdminPaymentManagement />;
             case 'broadcast':
                 return <AdminBroadcast />;
+            case 'employees':
+                return <AdminStaffTracking role="employee" />;
+            case 'drivers':
+                return <AdminStaffTracking role="driver" />;
+            case 'ai-management':
+                return <AdminAIManagement />;
+            case 'subscription-management':
+                return <AdminSubscriptionManagement />;
+            case 'ip-tracker':
+                return <AdminIPTracker />;
             default:
                 return <AdminDashboard stats={{users: users.length, bookings: bookings.length, complaints: complaints.length, revenue: payments.reduce((acc, p) => acc + p.amount, 0)}} />;
         }
@@ -44,7 +58,7 @@ const AdminApp: React.FC<AdminAppProps> = ({ handleAdminLogout }) => {
     if (!user) return null;
 
     return (
-        <div className="w-full max-w-4xl mx-auto flex h-screen">
+        <div className="w-full max-w-6xl mx-auto flex h-screen">
             <AdminSidebar currentView={currentView} setCurrentView={setCurrentView} />
             <div className="flex-1 flex flex-col">
                 <AdminHeader user={user} handleAdminLogout={handleAdminLogout} toggleTheme={toggleTheme} theme={theme} />
@@ -59,11 +73,16 @@ const AdminApp: React.FC<AdminAppProps> = ({ handleAdminLogout }) => {
 const AdminSidebar: React.FC<{currentView: AdminView, setCurrentView: (view: AdminView) => void}> = ({ currentView, setCurrentView }) => {
     const navItems = [
         { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-        { id: 'users', label: 'Users', icon: Users },
+        { id: 'users', label: 'User Details', icon: Users },
         { id: 'bookings', label: 'Bookings', icon: ShoppingBasket },
         { id: 'complaints', label: 'Complaints', icon: MessageSquareWarning },
         { id: 'payments', label: 'Payments', icon: IndianRupee },
+        { id: 'employees', label: 'Employee Details', icon: Users },
+        { id: 'drivers', label: 'Driver Details', icon: Car },
         { id: 'broadcast', label: 'Broadcast', icon: Megaphone },
+        { id: 'ai-management', label: 'AI Management', icon: Bot },
+        { id: 'subscription-management', label: 'Subscription Model', icon: Settings },
+        { id: 'ip-tracker', label: 'IP Tracker', icon: Target },
     ];
     
     return (

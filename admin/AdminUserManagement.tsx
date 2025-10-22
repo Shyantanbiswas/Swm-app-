@@ -1,6 +1,6 @@
 import React, { useState, useMemo, Fragment } from 'react';
 import type { User } from '../types';
-import { Pencil, Save, AlertTriangle, ShieldOff, Shield, Trash2, Eye, EyeOff, Info, Search, ChevronDown, Mail } from 'lucide-react';
+import { Pencil, Save, AlertTriangle, ShieldOff, Shield, Trash2, Eye, EyeOff, Info, Search, ChevronDown, Mail, MapPin, Users, Home } from 'lucide-react';
 import { useData } from '../context/DataContext';
 
 interface AdminUserManagementProps {
@@ -26,8 +26,11 @@ const AdminUserManagement: React.FC<AdminUserManagementProps> = ({ users, update
     const [sortOption, setSortOption] = useState('date-desc');
 
     const processedUsers = useMemo(() => {
-        let filtered = users.filter(user =>
-            user.name.toLowerCase().includes(searchQuery.toLowerCase())
+        const householdUsers = users.filter(user => user.role === 'household');
+        
+        let filtered = householdUsers.filter(user =>
+            user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            user.identifier.toLowerCase().includes(searchQuery.toLowerCase())
         );
 
         switch (sortOption) {
@@ -141,14 +144,14 @@ const AdminUserManagement: React.FC<AdminUserManagementProps> = ({ users, update
 
     return (
          <div className="animate-fade-in-up">
-            <h1 className="text-3xl font-bold text-heading-light dark:text-heading-dark mb-6">User Management</h1>
+            <h1 className="text-3xl font-bold text-heading-light dark:text-heading-dark mb-6">User Details</h1>
             
              <div className="flex justify-between items-center mb-4 flex-wrap gap-4">
                 <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
                     <input
                         type="text"
-                        placeholder="Search by name..."
+                        placeholder="Search by name or ID..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="w-full sm:w-64 p-2 pl-10 border border-border-light dark:border-border-dark bg-card-light dark:bg-slate-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
@@ -170,12 +173,13 @@ const AdminUserManagement: React.FC<AdminUserManagementProps> = ({ users, update
             </div>
 
             <div className="bg-card-light dark:bg-card-dark rounded-lg shadow-md overflow-x-auto">
-                <table className="w-full text-left min-w-[800px]">
+                <table className="w-full text-left min-w-[1200px]">
                     <thead className="bg-slate-50 dark:bg-slate-800 border-b border-border-light dark:border-border-dark">
                         <tr>
                             <th className="p-4 font-semibold text-text-light dark:text-text-dark">User</th>
                             <th className="p-4 font-semibold text-text-light dark:text-text-dark">Identifier</th>
-                            <th className="p-4 font-semibold text-text-light dark:text-text-dark">Registered On</th>
+                            <th className="p-4 font-semibold text-text-light dark:text-text-dark">Last Activity</th>
+                            <th className="p-4 font-semibold text-text-light dark:text-text-dark">Live Location</th>
                             <th className="p-4 font-semibold text-text-light dark:text-text-dark">Status</th>
                             <th className="p-4 font-semibold text-text-light dark:text-text-dark text-center">Actions</th>
                         </tr>
@@ -196,7 +200,28 @@ const AdminUserManagement: React.FC<AdminUserManagementProps> = ({ users, update
                                     </div>
                                 </td>
                                 <td className="p-4 text-text-light dark:text-text-dark font-mono text-sm">{user.identifier}</td>
-                                <td className="p-4 text-text-light dark:text-text-dark">{user.createdAt.toLocaleDateString()}</td>
+                                <td className="p-4 text-text-light dark:text-text-dark text-sm">
+                                    {user.lastLoginTime ? (
+                                        <div>
+                                            <p>{user.lastLoginTime.toLocaleString()}</p>
+                                            <p className="font-mono text-xs text-slate-500">{user.lastIpAddress || 'No IP'}</p>
+                                        </div>
+                                    ) : <span className="text-slate-400">N/A</span>}
+                                </td>
+                                <td className="p-4 text-text-light dark:text-text-dark">
+                                    {user.lastLocation ? (
+                                        <a
+                                            href={`https://www.google.com/maps?q=${user.lastLocation.lat},${user.lastLocation.lng}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-flex items-center text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 font-semibold py-1 px-2 rounded-full hover:bg-blue-200 dark:hover:bg-blue-900"
+                                        >
+                                            <MapPin size={12} className="mr-1"/> View Map
+                                        </a>
+                                    ) : (
+                                        <span className="text-slate-400 text-xs">No data</span>
+                                    )}
+                                </td>
                                 <td className="p-4">{getStatusChip(user.status)}</td>
                                 <td className="p-4 text-center">
                                     <div className="flex justify-center items-center space-x-1">
@@ -232,13 +257,35 @@ const AdminUserManagement: React.FC<AdminUserManagementProps> = ({ users, update
                     <div className="bg-card-light dark:bg-card-dark rounded-xl shadow-2xl w-full max-w-md relative transform transition-all animate-scale-in">
                         <div className="p-6">
                             <h3 className="text-xl font-bold text-heading-light dark:text-heading-dark mb-4">User Details</h3>
-                            <div className="space-y-3 text-sm">
+                            <div className="space-y-3 text-sm text-text-light dark:text-text-dark">
                                 <p><strong>Name:</strong> {viewingUser.name}</p>
                                 <p><strong>Identifier:</strong> {viewingUser.identifier}</p>
                                 <p><strong>Email:</strong> {viewingUser.email || 'N/A'}</p>
-                                <p><strong>Household ID:</strong> {viewingUser.householdId}</p>
-                                <p><strong>Registered On:</strong> {viewingUser.createdAt.toLocaleString()}</p>
-                                <div className="flex items-center">
+                                <p className="flex items-center"><Users size={14} className="mr-2"/><strong>Family Size:</strong> {viewingUser.familySize}</p>
+                                <div className="pt-2 border-t border-border-light dark:border-border-dark">
+                                    <p className="flex items-center font-semibold text-heading-light dark:text-heading-dark"><Home size={14} className="mr-2"/> Address</p>
+                                    <p className="pl-6">{viewingUser.address.area},<br/>{viewingUser.address.landmark},<br/>Pincode: {viewingUser.address.pincode}</p>
+                                </div>
+                                <div className="pt-2 border-t border-border-light dark:border-border-dark space-y-1">
+                                    <p><strong>Last Login:</strong> {viewingUser.lastLoginTime?.toLocaleString() || 'N/A'}</p>
+                                    <p><strong>IP Address:</strong> {viewingUser.lastIpAddress || 'N/A'}</p>
+                                </div>
+                                <div className="pt-3 border-t border-border-light dark:border-border-dark">
+                                    <p className="flex items-center font-semibold text-heading-light dark:text-heading-dark mb-2"><MapPin size={14} className="mr-2"/> Live Location</p>
+                                    {viewingUser.lastLocation ? (
+                                        <div className="pl-6 space-y-2">
+                                            <p><strong>Coordinates:</strong> <span className="font-mono">{`${viewingUser.lastLocation.lat.toFixed(6)}, ${viewingUser.lastLocation.lng.toFixed(6)}`}</span></p>
+                                            <p><strong>Last Update:</strong> {viewingUser.lastLocation.timestamp.toLocaleString()}</p>
+                                            <a href={`https://www.google.com/maps?q=${viewingUser.lastLocation.lat},${viewingUser.lastLocation.lng}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center bg-blue-500 text-white font-bold py-2 px-3 rounded-lg text-xs shadow-md hover:bg-blue-600 transition-all">
+                                                <MapPin className="mr-1.5" size={14} /> Open in Google Maps
+                                            </a>
+                                        </div>
+                                    ) : (
+                                        <p className="pl-6 text-slate-500">No location data available.</p>
+                                    )}
+                                </div>
+
+                                <div className="flex items-center pt-2 border-t border-border-light dark:border-border-dark">
                                     <strong className="mr-2">Password:</strong>
                                     <span className={`font-mono ${!isPasswordVisible ? 'blur-sm' : ''}`}>{viewingUser.password || 'Not Set'}</span>
                                     <button onClick={() => setIsPasswordVisible(!isPasswordVisible)} className="ml-auto p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700">

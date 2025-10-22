@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import type { Payment } from '../types';
 import { useData } from '../context/DataContext';
-import { Eye, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Eye, CheckCircle, XCircle, Clock, Search } from 'lucide-react';
 
 const AdminPaymentManagement: React.FC = () => {
     const { payments, users, updatePayment } = useData();
     const [reviewingPayment, setReviewingPayment] = useState<Payment | null>(null);
+    const [searchQuery, setSearchQuery] = useState('');
 
     const getUserName = (householdId: string) => {
         return users.find(u => u.householdId === householdId)?.name || householdId;
@@ -33,15 +34,36 @@ const AdminPaymentManagement: React.FC = () => {
         }
     }
 
-    const sortedPayments = [...payments].sort((a, b) => {
-        if (a.status === 'Pending Verification' && b.status !== 'Pending Verification') return -1;
-        if (a.status !== 'Pending Verification' && b.status === 'Pending Verification') return 1;
-        return b.date.getTime() - a.date.getTime();
-    });
+    const processedPayments = useMemo(() => {
+        const sorted = [...payments].sort((a, b) => {
+            if (a.status === 'Pending Verification' && b.status !== 'Pending Verification') return -1;
+            if (a.status !== 'Pending Verification' && b.status === 'Pending Verification') return 1;
+            return b.date.getTime() - a.date.getTime();
+        });
+
+        if (!searchQuery) {
+            return sorted;
+        }
+
+        return sorted.filter(payment =>
+            getUserName(payment.householdId).toLowerCase().includes(searchQuery.toLowerCase()) ||
+            payment.id.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+    }, [payments, searchQuery, users]);
 
     return (
         <div className="animate-fade-in-up">
             <h1 className="text-3xl font-bold text-heading-light dark:text-heading-dark mb-6">Payment Management</h1>
+            <div className="relative mb-4">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                <input
+                    type="text"
+                    placeholder="Search by User Name or TXN ID..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full sm:w-72 p-2 pl-10 border border-border-light dark:border-border-dark bg-card-light dark:bg-slate-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+            </div>
             <div className="bg-card-light dark:bg-card-dark rounded-lg shadow-md overflow-hidden">
                 <table className="w-full text-left">
                     <thead className="bg-slate-50 dark:bg-slate-800 border-b border-border-light dark:border-border-dark">
@@ -54,7 +76,7 @@ const AdminPaymentManagement: React.FC = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {sortedPayments.map((payment, index) => (
+                        {processedPayments.map((payment, index) => (
                              <tr key={payment.id} className={`border-b border-border-light dark:border-border-dark ${index % 2 === 0 ? 'bg-transparent' : 'bg-slate-50/50 dark:bg-slate-800/20'}`}>
                                 <td className="p-4 text-text-light dark:text-text-dark">{payment.date.toLocaleDateString()}</td>
                                 <td className="p-4 text-heading-light dark:text-heading-dark">{getUserName(payment.householdId)}</td>
@@ -71,7 +93,7 @@ const AdminPaymentManagement: React.FC = () => {
                         ))}
                     </tbody>
                 </table>
-                 {payments.length === 0 && <p className="p-4 text-center text-text-light dark:text-text-dark">No payments found.</p>}
+                 {processedPayments.length === 0 && <p className="p-6 text-center text-text-light dark:text-text-dark">No payments found matching your criteria.</p>}
             </div>
 
             {reviewingPayment && (
