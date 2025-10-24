@@ -12,30 +12,36 @@ interface LoginResult {
 
 interface SignupParams {
     name: string;
-    identifier: string;
+    identifier: string; // Mobile number
+    email: string;
     password?: string;
     familySize: number;
     address: User['address'];
+    gramPanchayat: string;
 }
 
 interface AuthContextType {
   isLoggedIn: boolean;
   user: User | null;
+  forcePasswordChange: boolean;
   login: (identifier: string, password?: string, rememberMe?: boolean) => Promise<LoginResult>;
   signup: (params: SignupParams) => Promise<LoginResult>;
   loginAsAdmin: (identifier: string) => Promise<LoginResult>;
-  loginAsStaff: (identifier: string, role: 'employee' | 'driver') => Promise<LoginResult>;
+  loginAsStaff: (identifier: string) => Promise<LoginResult>;
   logout: () => void;
   toggleBookingReminders: () => void;
   updateUserName: (newName: string) => void;
   updateUserEmail: (newEmail: string) => void;
   updateUserProfilePicture: (pictureDataUrl: string) => void;
+  updateUserGramPanchayat: (gramPanchayat: string) => void;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<{ success: boolean; message?: string; }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [loggedInUserId, setLoggedInUserId] = useState<string | null>(null);
+  const [forcePasswordChange, setForcePasswordChange] = useState(false);
   const { users, addUser, updateUser, subscriptionPlans } = useData();
 
   const user = users.find(u => u.householdId === loggedInUserId) || null;
@@ -48,8 +54,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
 
     if (savedUserId) {
-        if (users.some(u => u.householdId === savedUserId)) {
+        const potentialUser = users.find(u => u.householdId === savedUserId);
+        if (potentialUser) {
             setLoggedInUserId(savedUserId);
+            // Re-check password strength on initial load from storage
+            if (potentialUser.password && !isStrongPassword(potentialUser.password)) {
+                setForcePasswordChange(true);
+            }
         } else {
             localStorage.removeItem(USER_ID_STORAGE_KEY);
             sessionStorage.removeItem(USER_ID_STORAGE_KEY);
@@ -88,15 +99,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // No changes if already incremented today
     return {};
   };
+  
+  const isStrongPassword = (password: string): boolean => {
+    if (!password) return false;
+    const minLength = 8;
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasLowerCase = /[a-z]/.test(password);
+    const hasNumbers = /\d/.test(password);
+    const hasNonalphas = /\W|_/.test(password); // Includes underscore
+    return password.length >= minLength && hasUpperCase && hasLowerCase && hasNumbers && hasNonalphas;
+  };
 
   const login = async (identifier: string, password?: string, rememberMe?: boolean): Promise<LoginResult> => {
-    const isEmail = identifier.includes('@');
-    const normalizedIdentifier = isEmail ? identifier.toLowerCase() : identifier.replace(/[^0-9]/g, '');
+    const normalizedIdentifier = identifier.replace(/[^0-9]/g, '');
 
     const existingUser = users.find(u => u.identifier === normalizedIdentifier);
 
     if (!existingUser) {
-        return { success: false, message: 'No account found with this identifier.' };
+        return { success: false, message: 'No account found with this mobile number.' };
     }
     // Allow special admin '9635929052' to log in as a household user
     if (existingUser.role !== 'household' && existingUser.identifier !== '9635929052') {
@@ -109,6 +129,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return { success: false, message: 'Invalid password.' };
     }
     
+    // Check for weak password after successful login
+    if (existingUser.password && !isStrongPassword(existingUser.password)) {
+        setForcePasswordChange(true);
+    } else {
+        setForcePasswordChange(false);
+    }
+
     const mockIpAddress = `103.12.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`;
     const streakUpdates = handleStreakLogic(existingUser);
     const updatedUser = { ...existingUser, lastLoginTime: new Date(), lastIpAddress: mockIpAddress, ...streakUpdates };
@@ -122,23 +149,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setLoggedInUserId(existingUser.householdId);
     return { success: true, user: updatedUser };
   }
-  
-  const isStrongPassword = (password: string): boolean => {
-    const minLength = 8;
-    const hasUpperCase = /[A-Z]/.test(password);
-    const hasLowerCase = /[a-z]/.test(password);
-    const hasNumbers = /\d/.test(password);
-    const hasNonalphas = /\W|_/.test(password); // Includes underscore
-    return password.length >= minLength && hasUpperCase && hasLowerCase && hasNumbers && hasNonalphas;
-  };
 
   const signup = async (params: SignupParams): Promise<LoginResult> => {
-    const { name, identifier, password, familySize, address } = params;
-    const isEmail = identifier.includes('@');
-    const normalizedIdentifier = isEmail ? identifier.toLowerCase() : identifier.replace(/[^0-9]/g, '');
+    const { name, identifier, email, password, familySize, address, gramPanchayat } = params;
+    const normalizedIdentifier = identifier.replace(/[^0-9]/g, '');
+    const normalizedEmail = email.toLowerCase().trim();
+    const normalizedName = name.trim();
 
     if (users.some(u => u.identifier === normalizedIdentifier)) {
-        return { success: false, message: 'An account with this identifier already exists.' };
+        return { success: false, message: 'An account with this mobile number already exists.' };
+    }
+
+    if (users.some(u => u.name.toLowerCase() === normalizedName.toLowerCase() && u.email.toLowerCase() === normalizedEmail)) {
+        return { success: false, message: 'An account with this name and email combination already exists.' };
     }
     
     if (!password || !isStrongPassword(password)) {
@@ -149,7 +172,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const balance = familySize > subscriptionPlans.largeFamilyThreshold ? subscriptionPlans.largeFamily : subscriptionPlans.standard;
 
     const newUser: User = {
-        name,
+        name: normalizedName,
         householdId,
         identifier: normalizedIdentifier,
         password,
@@ -158,11 +181,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         hasGreenBadge: false,
         bookingReminders: true,
         profilePicture: '',
-        email: isEmail ? normalizedIdentifier : '',
+        email: normalizedEmail,
         createdAt: new Date(),
         outstandingBalance: balance,
         familySize,
         address,
+        gramPanchayat,
         loginStreak: 1,
         lastStreakIncrement: new Date(),
     };
@@ -170,6 +194,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     sessionStorage.setItem(USER_ID_STORAGE_KEY, householdId);
     setLoggedInUserId(householdId);
+    setForcePasswordChange(false); // New user has a strong password
     return { success: true, user: newUser };
   }
 
@@ -186,17 +211,33 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       localStorage.setItem('isAdminMode', 'true');
       localStorage.setItem('isAdminLoggedIn', 'true');
       setLoggedInUserId(existingUser.householdId);
+      setForcePasswordChange(false);
       return { success: true };
   };
 
-  const loginAsStaff = async (identifier: string, role: 'employee' | 'driver'): Promise<LoginResult> => {
-    // Allow login if the user has the specific role OR if the user is the special admin
-    const existingUser = users.find(u => u.identifier === identifier && (u.role === role || u.identifier === '9635929052'));
-    if (!existingUser) {
-        return { success: false, message: `No ${role} account found with this number.` };
+  const loginAsStaff = async (identifier: string): Promise<LoginResult> => {
+    const staffRoles: User['role'][] = ['employee', 'captain', 'sanitaryworker'];
+    const userToLogin = users.find(u => u.identifier === identifier);
+
+    if (!userToLogin) {
+        return { success: false, message: 'No account found with this number.' };
     }
-    if (existingUser.status === 'blocked') {
+
+    // Allow admin to log in as staff via the special number
+    const isAdminOverride = userToLogin.role === 'admin' && userToLogin.identifier === '9635929052';
+
+    if (!staffRoles.includes(userToLogin.role) && !isAdminOverride) {
+        return { success: false, message: 'This account does not have staff permissions.' };
+    }
+
+    if (userToLogin.status === 'blocked') {
         return { success: false, message: 'Your account has been blocked. Please contact support.' };
+    }
+    
+    if (userToLogin.password && !isStrongPassword(userToLogin.password)) {
+        setForcePasswordChange(true);
+    } else {
+        setForcePasswordChange(false);
     }
 
     // Attendance Logic: Present if login is between 10:00 AM and 10:30 AM
@@ -210,10 +251,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Simulate getting IP address
     const mockIpAddress = `103.12.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`;
 
-    const streakUpdates = handleStreakLogic(existingUser);
+    const streakUpdates = handleStreakLogic(userToLogin);
     
     const updatedUser: User = {
-        ...existingUser,
+        ...userToLogin,
         attendanceStatus,
         lastLoginTime: now,
         lastIpAddress: mockIpAddress,
@@ -221,9 +262,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
     updateUser(updatedUser);
 
-    sessionStorage.setItem(USER_ID_STORAGE_KEY, existingUser.householdId); // Use session storage for staff
-    setLoggedInUserId(existingUser.householdId);
+    sessionStorage.setItem(USER_ID_STORAGE_KEY, updatedUser.householdId);
+    setLoggedInUserId(updatedUser.householdId);
     return { success: true, user: updatedUser };
+  };
+  
+  const changePassword = async (currentPassword: string, newPassword: string): Promise<{ success: boolean; message?: string; }> => {
+    if (!user) {
+        return { success: false, message: "No user is logged in." };
+    }
+    if (user.password !== currentPassword) {
+        return { success: false, message: "Incorrect current password." };
+    }
+    if (!isStrongPassword(newPassword)) {
+        return { success: false, message: "The new password is not strong enough." };
+    }
+
+    const updatedUser = { ...user, password: newPassword };
+    updateUser(updatedUser);
+    setForcePasswordChange(false); // Password is now strong
+    return { success: true };
   };
 
   const logout = () => {
@@ -232,6 +290,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     localStorage.removeItem('isAdminMode');
     localStorage.removeItem('isAdminLoggedIn');
     setLoggedInUserId(null);
+    setForcePasswordChange(false);
   };
 
   const updateUserData = (updatedUser: User) => {
@@ -265,9 +324,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         updateUserData(updatedUser);
     }
   };
+  
+  const updateUserGramPanchayat = (gramPanchayat: string) => {
+    if(user) {
+        const updatedUser = { ...user, gramPanchayat };
+        updateUserData(updatedUser);
+    }
+  };
 
   return (
-    <AuthContext.Provider value={{ isLoggedIn, user, login, signup, loginAsAdmin, loginAsStaff, logout, toggleBookingReminders, updateUserName, updateUserEmail, updateUserProfilePicture }}>
+    <AuthContext.Provider value={{ isLoggedIn, user, forcePasswordChange, login, signup, loginAsAdmin, loginAsStaff, logout, toggleBookingReminders, updateUserName, updateUserEmail, updateUserProfilePicture, updateUserGramPanchayat, changePassword }}>
       {children}
     </AuthContext.Provider>
   );

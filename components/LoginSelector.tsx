@@ -4,7 +4,7 @@ import LanguageSwitcher from './LanguageSwitcher';
 import { useLanguage } from '../context/LanguageContext';
 
 interface LoginSelectorProps {
-    onSelectMode: (mode: 'user' | 'admin' | 'employee' | 'driver') => void;
+    onSelectMode: (mode: 'user' | 'admin' | 'staff') => void;
 }
 
 const LoginSelector: React.FC<LoginSelectorProps> = ({ onSelectMode }) => {
@@ -31,16 +31,10 @@ const LoginSelector: React.FC<LoginSelectorProps> = ({ onSelectMode }) => {
                         <User className="mr-3" /> {t('householdLogin')}
                     </button>
                     <button
-                        onClick={() => onSelectMode('employee')}
+                        onClick={() => onSelectMode('staff')}
                         className="w-full bg-gradient-to-r from-slate-500 to-slate-600 dark:from-slate-700 dark:to-slate-800 text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center text-lg shadow-sm hover:shadow-md transition-all transform hover:scale-105"
                     >
-                        <User className="mr-3" /> {t('employeeLogin')}
-                    </button>
-                    <button
-                        onClick={() => onSelectMode('driver')}
-                        className="w-full bg-gradient-to-r from-slate-500 to-slate-600 dark:from-slate-700 dark:to-slate-800 text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center text-lg shadow-sm hover:shadow-md transition-all transform hover:scale-105"
-                    >
-                        <Car className="mr-3" /> {t('driverLogin')}
+                        <User className="mr-3" /> {t('staffLogin')}
                     </button>
                     <button
                         onClick={() => onSelectMode('admin')}

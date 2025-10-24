@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { useData } from '../context/DataContext';
 import { UploadCloud, Bot, Loader2, UserCheck, UserX, FileText, Type, UserPlus, UserCog } from 'lucide-react';
 import type { User } from '../types';
+import { GRAM_PANCHAYATS } from '../types';
+
+type StaffRole = 'employee' | 'captain' | 'sanitaryworker';
 
 const AdminAIManagement: React.FC = () => {
     const { users, addUser, updateUser } = useData();
@@ -43,7 +46,7 @@ const AdminAIManagement: React.FC = () => {
         
         // --- AI Simulation ---
         setTimeout(() => {
-            let staffDataFromInput: { identifier: string; name?: string; role?: 'employee' | 'driver' }[] = [];
+            let staffDataFromInput: { identifier: string; name?: string; role?: StaffRole, gramPanchayat?: string }[] = [];
             
             if (mode === 'upload') {
                 if (!fileName) {
@@ -51,11 +54,12 @@ const AdminAIManagement: React.FC = () => {
                     setIsAnalyzing(false);
                     return;
                 }
-                // Simulate AI parsing a file. It finds two staff members.
-                // One is existing (Ravi), one is new (Priya). Suresh is not on the list.
+                // Simulate AI parsing a file.
+                // Ravi is existing, Priya and Amit are new. Suresh is not on the list.
                 staffDataFromInput = [
-                    { identifier: '8888888888', name: 'Ravi Kumar', role: 'employee' }, // Existing
-                    { identifier: '7777777777', name: 'Priya Sharma', role: 'driver' } // New
+                    { identifier: '8888888888', name: 'Ravi Kumar', role: 'employee', gramPanchayat: 'KHANDRA' }, // Existing
+                    { identifier: '7777777777', name: 'Priya Sharma', role: 'captain', gramPanchayat: 'ANDAL' }, // New
+                    { identifier: '6666666666', name: 'Amit Das', role: 'sanitaryworker', gramPanchayat: 'MADANPUR' }, // New
                 ];
 
             } else { // Manual mode
@@ -64,7 +68,7 @@ const AdminAIManagement: React.FC = () => {
                     setIsAnalyzing(false);
                     return;
                 }
-                 // Parse manual input: mobile, name, role
+                 // Parse manual input: mobile, name, role, gram_panchayat
                 staffDataFromInput = manualInput
                     .split('\n')
                     .map(line => line.trim())
@@ -74,18 +78,26 @@ const AdminAIManagement: React.FC = () => {
                         const identifier = parts[0].replace(/\D/g, '');
                         if (identifier.length < 10) return null; // Basic validation
                         
-                        let role: 'employee' | 'driver' = 'employee';
-                        if (parts[2]?.toLowerCase() === 'driver') {
-                            role = 'driver';
+                        let role: StaffRole = 'employee';
+                        const roleInput = parts[2]?.toLowerCase();
+                        if (roleInput === 'driver' || roleInput === 'captain') {
+                            role = 'captain';
+                        } else if (roleInput === 'sanitaryworker') {
+                            role = 'sanitaryworker';
                         }
+                        
+                        const gpInput = parts[3]?.toUpperCase();
+                        const gramPanchayat = GRAM_PANCHAYATS.includes(gpInput as any) ? gpInput : undefined;
+
 
                         return {
                             identifier: identifier.slice(0, 10),
                             name: parts[1] || undefined,
-                            role: role
+                            role: role,
+                            gramPanchayat: gramPanchayat,
                         };
                     })
-                    .filter((item): item is { identifier: string; name?: string; role: 'employee' | 'driver' } => item !== null);
+                    .filter((item): item is { identifier: string; name?: string; role: StaffRole, gramPanchayat?: string } => item !== null);
             }
 
             if (staffDataFromInput.length === 0) {
@@ -95,7 +107,7 @@ const AdminAIManagement: React.FC = () => {
             }
 
             const inputIdentifiers = new Set(staffDataFromInput.map(s => s.identifier));
-            const allStaff = users.filter(u => u.role === 'employee' || u.role === 'driver');
+            const allStaff = users.filter(u => ['employee', 'captain', 'sanitaryworker'].includes(u.role));
             
             const results = {
                 created: [] as User[],
@@ -122,6 +134,11 @@ const AdminAIManagement: React.FC = () => {
                          updatedUser.role = inputStaff.role;
                     }
 
+                    if (inputStaff.gramPanchayat && inputStaff.gramPanchayat !== existingUser.gramPanchayat) {
+                         changes.push(`GP changed to "${inputStaff.gramPanchayat}"`);
+                         updatedUser.gramPanchayat = inputStaff.gramPanchayat;
+                    }
+
                     if (existingUser.status === 'blocked') {
                         updatedUser.status = 'active';
                         results.activated.push(updatedUser);
@@ -132,21 +149,28 @@ const AdminAIManagement: React.FC = () => {
                     }
 
                     if (changes.length > 0 || existingUser.status === 'blocked') {
-                        updateUser(updatedUser);
+                        updateUser(updatedUser as User);
                     }
 
                 } else { // User does not exist: create them
+                    const rolePrefix = {
+                        captain: 'CPT',
+                        sanitaryworker: 'SNW',
+                        employee: 'EMP'
+                    };
                     const newUser: User = {
                         name: inputStaff.name || `Staff ${inputStaff.identifier.slice(-4)}`,
-                        householdId: `${inputStaff.role === 'driver' ? 'DRV' : 'EMP'}-${inputStaff.identifier.slice(-4)}-${Date.now().toString().slice(-4)}`,
+                        householdId: `${rolePrefix[inputStaff.role || 'employee']}-${inputStaff.identifier.slice(-4)}-${Date.now().toString().slice(-4)}`,
                         identifier: inputStaff.identifier,
                         password: `password${Math.floor(1000 + Math.random() * 9000)}`, // Random temp password
+                        email: `${(inputStaff.name?.split(' ')[0] || 'staff').toLowerCase()}.${inputStaff.identifier.slice(-4)}@ecotrack.dev`,
                         role: inputStaff.role || 'employee',
                         status: 'active',
                         createdAt: new Date(),
                         outstandingBalance: 0,
                         familySize: 1, // Default for staff
                         address: { area: 'N/A', landmark: 'N/A', pincode: 'N/A' },
+                        gramPanchayat: inputStaff.gramPanchayat || GRAM_PANCHAYATS[0], // Default to first if not provided
                     };
                     addUser(newUser);
                     results.created.push(newUser);
@@ -158,8 +182,8 @@ const AdminAIManagement: React.FC = () => {
                 if (!inputIdentifiers.has(staffMember.identifier)) {
                     if (staffMember.status !== 'blocked') {
                         const deactivatedUser = { ...staffMember, status: 'blocked' as 'blocked' };
-                        updateUser(deactivatedUser);
-                        results.deactivated.push(deactivatedUser);
+                        updateUser(deactivatedUser as User);
+                        results.deactivated.push(deactivatedUser as User);
                     }
                 }
             });
@@ -201,7 +225,7 @@ const AdminAIManagement: React.FC = () => {
                                 onChange={(e) => setManualInput(e.target.value)}
                                 rows={6}
                                 className="w-full p-3 border border-border-light dark:border-border-dark bg-background-light dark:bg-slate-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary font-mono text-sm"
-                                placeholder="Enter one staff member per line.&#10;Format: mobile_number, full_name, role&#10;Example: 9876543210, John Doe, driver"
+                                placeholder="Enter one staff member per line.&#10;Format: mobile, name, role, gram_panchayat&#10;Example: 9876543210, John Doe, captain, UKHRA"
                             />
                         </div>
                     )}

@@ -13,18 +13,32 @@ export enum ViewType {
 
 export type View = ViewType;
 
+export const GRAM_PANCHAYATS = [
+    'ANDAL',
+    'DAKSHINKHANDA',
+    'KAJORA',
+    'KHANDRA',
+    'MADANPUR',
+    'RAMPRASADPUR',
+    'SHRIRAMPUR',
+    'UKHRA'
+] as const;
+
+export type GramPanchayat = typeof GRAM_PANCHAYATS[number];
+
+
 export interface User {
     name: string;
     householdId: string;
-    identifier: string; // The unique mobile number or email used to log in
+    identifier: string; // The unique mobile number used to log in
     password?: string; // User's password for login
-    role: 'household' | 'admin' | 'employee' | 'driver';
+    role: 'household' | 'admin' | 'employee' | 'captain' | 'sanitaryworker';
     status: 'active' | 'blocked' | 'warned';
     warningMessage?: string;
     hasGreenBadge?: boolean;
     bookingReminders?: boolean;
     profilePicture?: string;
-    email?: string;
+    email: string; // User's mandatory email address
     createdAt: Date;
     outstandingBalance: number;
     familySize: number;
@@ -33,6 +47,7 @@ export interface User {
         landmark: string;
         pincode: string;
     };
+    gramPanchayat?: string;
     // Staff-specific properties
     attendanceStatus?: 'present' | 'absent' | 'on_leave';
     lastLoginTime?: Date;

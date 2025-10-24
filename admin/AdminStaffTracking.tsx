@@ -4,7 +4,7 @@ import { CheckCircle, XCircle, Clock, MapPin } from 'lucide-react';
 import type { User } from '../types';
 
 interface AdminStaffTrackingProps {
-    role: 'employee' | 'driver';
+    role: 'employee' | 'captain' | 'sanitaryworker';
 }
 
 const AdminStaffTracking: React.FC<AdminStaffTrackingProps> = ({ role }) => {
@@ -12,7 +12,12 @@ const AdminStaffTracking: React.FC<AdminStaffTrackingProps> = ({ role }) => {
     const staff = users.filter(u => u.role === role)
         .sort((a, b) => a.name.localeCompare(b.name));
     
-    const title = role === 'employee' ? 'Employee Details' : 'Driver Details';
+    const titleMap = {
+        employee: 'Employee Details',
+        captain: 'Captain Details',
+        sanitaryworker: 'Sanitary Worker Details',
+    };
+    const title = titleMap[role];
 
     const getAttendanceChip = (user: User) => {
         switch (user.attendanceStatus) {
@@ -59,6 +64,7 @@ const AdminStaffTracking: React.FC<AdminStaffTrackingProps> = ({ role }) => {
                     <thead className="bg-slate-50 dark:bg-slate-800 border-b border-border-light dark:border-border-dark">
                         <tr>
                             <th className="p-4 font-semibold text-text-light dark:text-text-dark">Staff Member</th>
+                            <th className="p-4 font-semibold text-text-light dark:text-text-dark">Gram Panchayat</th>
                             <th className="p-4 font-semibold text-text-light dark:text-text-dark">Attendance</th>
                             <th className="p-4 font-semibold text-text-light dark:text-text-dark">Last Activity</th>
                             <th className="p-4 font-semibold text-text-light dark:text-text-dark">Live Location</th>
@@ -79,6 +85,7 @@ const AdminStaffTracking: React.FC<AdminStaffTrackingProps> = ({ role }) => {
                                         <span className="font-medium">{member.name}</span>
                                     </div>
                                 </td>
+                                <td className="p-4 text-text-light dark:text-text-dark text-sm">{member.gramPanchayat || <span className="text-slate-400">N/A</span>}</td>
                                 <td className="p-4">{getAttendanceChip(member)}</td>
                                 <td className="p-4 text-text-light dark:text-text-dark text-sm">
                                     {member.lastLoginTime ? (

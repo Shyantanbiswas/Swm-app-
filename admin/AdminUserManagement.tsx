@@ -1,7 +1,8 @@
 import React, { useState, useMemo, Fragment } from 'react';
 import type { User } from '../types';
-import { Pencil, Save, AlertTriangle, ShieldOff, Shield, Trash2, Eye, EyeOff, Info, Search, ChevronDown, Mail, MapPin, Users, Home } from 'lucide-react';
+import { Pencil, Save, AlertTriangle, ShieldOff, Shield, Trash2, Eye, EyeOff, Info, Search, ChevronDown, Mail, MapPin, Users, Home, Globe } from 'lucide-react';
 import { useData } from '../context/DataContext';
+import GramPanchayatSelector from '../components/GramPanchayatSelector';
 
 interface AdminUserManagementProps {
     users: User[];
@@ -18,6 +19,7 @@ const AdminUserManagement: React.FC<AdminUserManagementProps> = ({ users, update
 
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
+    const [gramPanchayat, setGramPanchayat] = useState('');
     const [warningMessage, setWarningMessage] = useState('');
     const [messageText, setMessageText] = useState('');
     const [isPasswordVisible, setIsPasswordVisible] = useState(false);
@@ -30,7 +32,8 @@ const AdminUserManagement: React.FC<AdminUserManagementProps> = ({ users, update
         
         let filtered = householdUsers.filter(user =>
             user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            user.identifier.toLowerCase().includes(searchQuery.toLowerCase())
+            user.identifier.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            user.gramPanchayat?.toLowerCase().includes(searchQuery.toLowerCase())
         );
 
         switch (sortOption) {
@@ -65,6 +68,7 @@ const AdminUserManagement: React.FC<AdminUserManagementProps> = ({ users, update
         setEditingUser(user);
         setName(user.name);
         setEmail(user.email || '');
+        setGramPanchayat(user.gramPanchayat || '');
     }
 
     const handleViewClick = (user: User) => {
@@ -99,13 +103,14 @@ const AdminUserManagement: React.FC<AdminUserManagementProps> = ({ users, update
         setMessagingUser(null);
         setName('');
         setEmail('');
+        setGramPanchayat('');
         setWarningMessage('');
         setMessageText('');
     }
 
     const handleSaveChanges = () => {
         if (editingUser) {
-            updateUser({ ...editingUser, name, email });
+            updateUser({ ...editingUser, name, email, gramPanchayat });
             closeModals();
         }
     }
@@ -151,7 +156,7 @@ const AdminUserManagement: React.FC<AdminUserManagementProps> = ({ users, update
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
                     <input
                         type="text"
-                        placeholder="Search by name or ID..."
+                        placeholder="Search by name, ID, GP..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="w-full sm:w-64 p-2 pl-10 border border-border-light dark:border-border-dark bg-card-light dark:bg-slate-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
@@ -177,7 +182,7 @@ const AdminUserManagement: React.FC<AdminUserManagementProps> = ({ users, update
                     <thead className="bg-slate-50 dark:bg-slate-800 border-b border-border-light dark:border-border-dark">
                         <tr>
                             <th className="p-4 font-semibold text-text-light dark:text-text-dark">User</th>
-                            <th className="p-4 font-semibold text-text-light dark:text-text-dark">Identifier</th>
+                            <th className="p-4 font-semibold text-text-light dark:text-text-dark">Gram Panchayat</th>
                             <th className="p-4 font-semibold text-text-light dark:text-text-dark">Last Activity</th>
                             <th className="p-4 font-semibold text-text-light dark:text-text-dark">Live Location</th>
                             <th className="p-4 font-semibold text-text-light dark:text-text-dark">Status</th>
@@ -196,10 +201,13 @@ const AdminUserManagement: React.FC<AdminUserManagementProps> = ({ users, update
                                                 <span className="font-bold text-sm text-primary">{getUserInitials(user.name)}</span>
                                             </div>
                                         )}
-                                        <span className="font-medium">{user.name}</span>
+                                        <div>
+                                            <p className="font-medium">{user.name}</p>
+                                            <p className="font-mono text-xs text-slate-500">{user.identifier}</p>
+                                        </div>
                                     </div>
                                 </td>
-                                <td className="p-4 text-text-light dark:text-text-dark font-mono text-sm">{user.identifier}</td>
+                                <td className="p-4 text-text-light dark:text-text-dark text-sm">{user.gramPanchayat || <span className="text-slate-400">N/A</span>}</td>
                                 <td className="p-4 text-text-light dark:text-text-dark text-sm">
                                     {user.lastLoginTime ? (
                                         <div>
@@ -259,8 +267,9 @@ const AdminUserManagement: React.FC<AdminUserManagementProps> = ({ users, update
                             <h3 className="text-xl font-bold text-heading-light dark:text-heading-dark mb-4">User Details</h3>
                             <div className="space-y-3 text-sm text-text-light dark:text-text-dark">
                                 <p><strong>Name:</strong> {viewingUser.name}</p>
-                                <p><strong>Identifier:</strong> {viewingUser.identifier}</p>
+                                <p><strong>Mobile Number:</strong> {viewingUser.identifier}</p>
                                 <p><strong>Email:</strong> {viewingUser.email || 'N/A'}</p>
+                                <p><strong>Gram Panchayat:</strong> {viewingUser.gramPanchayat || 'N/A'}</p>
                                 <p className="flex items-center"><Users size={14} className="mr-2"/><strong>Family Size:</strong> {viewingUser.familySize}</p>
                                 <div className="pt-2 border-t border-border-light dark:border-border-dark">
                                     <p className="flex items-center font-semibold text-heading-light dark:text-heading-dark"><Home size={14} className="mr-2"/> Address</p>
@@ -314,6 +323,13 @@ const AdminUserManagement: React.FC<AdminUserManagementProps> = ({ users, update
                                 <div>
                                     <label htmlFor="email" className="block text-sm font-medium text-text-light dark:text-text-dark mb-1">Email Address</label>
                                     <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full p-3 pl-4 border border-border-light dark:border-border-dark bg-background-light dark:bg-slate-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary" />
+                                </div>
+                                <div>
+                                    <label htmlFor="gramPanchayat" className="block text-sm font-medium text-text-light dark:text-text-dark mb-1">Gram Panchayat</label>
+                                     <GramPanchayatSelector
+                                        value={gramPanchayat}
+                                        onChange={(e) => setGramPanchayat(e.target.value)}
+                                    />
                                 </div>
                             </div>
                         </div>

@@ -61,11 +61,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user, bookings, users }) => {
 
 
   useEffect(() => {
-    // Find a driver with a recent location update (e.g., within the last 15 minutes)
+    // Find a captain with a recent location update (e.g., within the last 15 minutes)
     const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
     const driver = users.find(
       (u) =>
-        u.role === 'driver' &&
+        u.role === 'captain' &&
         u.lastLocation &&
         u.lastLocation.timestamp > fifteenMinutesAgo
     );
@@ -144,7 +144,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, bookings, users }) => {
         {activeDriver && activeDriver.lastLocation ? (
           <div className="space-y-3">
              <p className="text-sm text-text-light dark:text-text-dark">
-                Driver <span className="font-bold text-primary">{activeDriver.name}</span> is on the way.
+                Captain <span className="font-bold text-primary">{activeDriver.name}</span> is on the way.
             </p>
             <p className="text-xs text-slate-500 dark:text-slate-400">
                 Last updated: {activeDriver.lastLocation.timestamp.toLocaleTimeString()}
@@ -163,7 +163,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, bookings, users }) => {
                     disabled
                     className="w-full inline-flex items-center justify-center bg-slate-300 dark:bg-slate-600 text-slate-500 dark:text-slate-400 font-bold py-2 px-4 rounded-lg cursor-not-allowed"
                 >
-                    <Truck className="mr-2" size={20} /> Enable your location to see driver
+                    <Truck className="mr-2" size={20} /> Enable your location to see captain
                 </button>
             )}
           </div>

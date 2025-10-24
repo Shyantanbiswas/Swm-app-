@@ -1,9 +1,11 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Recycle, KeyRound, ArrowRight, Mail, ArrowLeft, Loader2, User as UserIcon, MapPin, Users, CheckCircle } from 'lucide-react';
+import { Recycle, KeyRound, ArrowRight, Mail, ArrowLeft, Loader2, User as UserIcon, MapPin, Users, CheckCircle, Globe, Smartphone } from 'lucide-react';
 import type { User } from '../types';
 import LanguageSwitcher from './LanguageSwitcher';
 import { useLanguage } from '../context/LanguageContext';
+import GramPanchayatSelector from './GramPanchayatSelector';
+import PasswordStrengthIndicator from './PasswordStrengthIndicator';
 
 type AuthMode = 'login' | 'signup';
 
@@ -11,43 +13,14 @@ interface AuthFlowProps {
     onBack: () => void;
 }
 
-const PasswordStrengthIndicator: React.FC<{ password?: string }> = ({ password = '' }) => {
-    const checks = useMemo(() => {
-        return {
-            length: password.length >= 8,
-            uppercase: /[A-Z]/.test(password),
-            lowercase: /[a-z]/.test(password),
-            number: /\d/.test(password),
-            special: /\W|_/.test(password),
-        };
-    }, [password]);
-
-    const CheckItem: React.FC<{ text: string; valid: boolean }> = ({ text, valid }) => (
-        <li className={`flex items-center transition-colors ${valid ? 'text-success' : 'text-slate-400'}`}>
-            <CheckCircle size={14} className="mr-2" />
-            <span className="text-xs">{text}</span>
-        </li>
-    );
-
-    return (
-        <ul className="grid grid-cols-2 gap-x-4 gap-y-1 mt-2">
-            <CheckItem text="8+ Characters" valid={checks.length} />
-            <CheckItem text="Uppercase" valid={checks.uppercase} />
-            <CheckItem text="Lowercase" valid={checks.lowercase} />
-            <CheckItem text="Number" valid={checks.number} />
-            <CheckItem text="Special" valid={checks.special} />
-        </ul>
-    );
-};
-
-
 const AuthFlow: React.FC<AuthFlowProps> = ({ onBack }) => {
     const { t } = useLanguage();
     const [mode, setMode] = useState<AuthMode>('login');
     const [signupStep, setSignupStep] = useState(1);
     
     // Form state
-    const [identifier, setIdentifier] = useState('');
+    const [identifier, setIdentifier] = useState(''); // This is now mobile number
+    const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [name, setName] = useState('');
@@ -55,6 +28,7 @@ const AuthFlow: React.FC<AuthFlowProps> = ({ onBack }) => {
     const [area, setArea] = useState('');
     const [landmark, setLandmark] = useState('');
     const [pincode, setPincode] = useState('');
+    const [gramPanchayat, setGramPanchayat] = useState('');
 
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -80,9 +54,11 @@ const AuthFlow: React.FC<AuthFlowProps> = ({ onBack }) => {
         const result = await auth.signup({
             name,
             identifier,
+            email,
             password,
             familySize: Number(familySize),
             address: { area, landmark, pincode },
+            gramPanchayat,
         });
         setIsLoading(false);
         if (!result.success) {
@@ -103,6 +79,7 @@ const AuthFlow: React.FC<AuthFlowProps> = ({ onBack }) => {
     
     const resetForm = () => {
         setIdentifier('');
+        setEmail('');
         setPassword('');
         setConfirmPassword('');
         setName('');
@@ -110,6 +87,7 @@ const AuthFlow: React.FC<AuthFlowProps> = ({ onBack }) => {
         setArea('');
         setLandmark('');
         setPincode('');
+        setGramPanchayat('');
         setError('');
         setRememberMe(true);
         setSignupStep(1);
@@ -119,8 +97,8 @@ const AuthFlow: React.FC<AuthFlowProps> = ({ onBack }) => {
          <form onSubmit={handleLogin} className="space-y-4 animate-fade-in">
             <h2 className="text-2xl font-semibold text-heading-light dark:text-heading-dark">{t('welcomeBack')}</h2>
             <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-                <input type="text" value={identifier} onChange={(e) => setIdentifier(e.target.value)} placeholder={t('emailOrMobile')} className="w-full p-3 pl-12 border border-border-light dark:border-border-dark bg-slate-100 dark:bg-slate-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"/>
+                <Smartphone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                <input type="tel" value={identifier} onChange={(e) => setIdentifier(e.target.value)} placeholder={t('mobileNumber')} className="w-full p-3 pl-12 border border-border-light dark:border-border-dark bg-slate-100 dark:bg-slate-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"/>
             </div>
             <div className="relative">
                 <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
@@ -145,8 +123,12 @@ const AuthFlow: React.FC<AuthFlowProps> = ({ onBack }) => {
                 <input type="text" value={name} onChange={(e) => setName(e.target.value)} required placeholder={t('fullName')} className="w-full p-3 pl-12 border border-border-light dark:border-border-dark bg-slate-100 dark:bg-slate-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"/>
             </div>
             <div className="relative">
+                <Smartphone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                <input type="tel" value={identifier} onChange={(e) => setIdentifier(e.target.value)} required placeholder={t('mobileNumber')} className="w-full p-3 pl-12 border border-border-light dark:border-border-dark bg-slate-100 dark:bg-slate-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"/>
+            </div>
+            <div className="relative">
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-                <input type="text" value={identifier} onChange={(e) => setIdentifier(e.target.value)} required placeholder={t('emailOrMobile')} className="w-full p-3 pl-12 border border-border-light dark:border-border-dark bg-slate-100 dark:bg-slate-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"/>
+                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder={t('emailAddress')} className="w-full p-3 pl-12 border border-border-light dark:border-border-dark bg-slate-100 dark:bg-slate-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"/>
             </div>
             <div className="relative">
                 <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
@@ -169,6 +151,13 @@ const AuthFlow: React.FC<AuthFlowProps> = ({ onBack }) => {
              <div className="relative">
                 <Users className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
                 <input type="number" value={familySize} onChange={(e) => setFamilySize(parseInt(e.target.value, 10) || '')} required placeholder={t('familyMembers')} min="1" className="w-full p-3 pl-12 border border-border-light dark:border-border-dark bg-slate-100 dark:bg-slate-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"/>
+            </div>
+            <div className="relative">
+                <GramPanchayatSelector
+                    value={gramPanchayat}
+                    onChange={(e) => setGramPanchayat(e.target.value)}
+                    required
+                />
             </div>
             <div className="relative">
                 <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, Users, ShoppingBasket, MessageSquareWarning, IndianRupee, LogOut, Sun, Moon, Recycle, Megaphone, Target, Bot, Settings, Car } from 'lucide-react';
+import { LayoutDashboard, Users, ShoppingBasket, MessageSquareWarning, IndianRupee, LogOut, Sun, Moon, Recycle, Megaphone, Target, Bot, Settings, Car, ClipboardList } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
@@ -13,8 +13,10 @@ import AdminStaffTracking from './AdminStaffTracking';
 import AdminAIManagement from './AdminAIManagement';
 import AdminSubscriptionManagement from './AdminSubscriptionManagement';
 import AdminIPTracker from './AdminIPTracker';
+import AdminDataOverview from './AdminDataOverview';
+import AdminStaffNotice from './AdminStaffNotice';
 
-type AdminView = 'dashboard' | 'users' | 'bookings' | 'complaints' | 'payments' | 'broadcast' | 'employees' | 'drivers' | 'ai-management' | 'subscription-management' | 'ip-tracker';
+type AdminView = 'dashboard' | 'data-overview' | 'users' | 'bookings' | 'complaints' | 'payments' | 'broadcast' | 'employees' | 'captains' | 'sanitaryworkers' | 'ai-management' | 'subscription-management' | 'ip-tracker' | 'staff-notice';
 
 interface AdminAppProps {
     handleAdminLogout: () => void;
@@ -30,6 +32,8 @@ const AdminApp: React.FC<AdminAppProps> = ({ handleAdminLogout }) => {
         switch(currentView) {
             case 'dashboard':
                 return <AdminDashboard stats={{users: users.length, bookings: bookings.length, complaints: complaints.length, revenue: payments.reduce((acc, p) => acc + p.amount, 0)}} />;
+            case 'data-overview':
+                return <AdminDataOverview users={users} payments={payments} complaints={complaints} bookings={bookings} />;
             case 'users':
                 return <AdminUserManagement users={users} updateUser={updateUser} />;
             case 'bookings':
@@ -40,10 +44,14 @@ const AdminApp: React.FC<AdminAppProps> = ({ handleAdminLogout }) => {
                 return <AdminPaymentManagement />;
             case 'broadcast':
                 return <AdminBroadcast />;
+            case 'staff-notice':
+                return <AdminStaffNotice />;
             case 'employees':
                 return <AdminStaffTracking role="employee" />;
-            case 'drivers':
-                return <AdminStaffTracking role="driver" />;
+            case 'captains':
+                return <AdminStaffTracking role="captain" />;
+            case 'sanitaryworkers':
+                return <AdminStaffTracking role="sanitaryworker" />;
             case 'ai-management':
                 return <AdminAIManagement />;
             case 'subscription-management':
@@ -73,13 +81,16 @@ const AdminApp: React.FC<AdminAppProps> = ({ handleAdminLogout }) => {
 const AdminSidebar: React.FC<{currentView: AdminView, setCurrentView: (view: AdminView) => void}> = ({ currentView, setCurrentView }) => {
     const navItems = [
         { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+        { id: 'data-overview', label: 'Data Overview', icon: ClipboardList },
         { id: 'users', label: 'User Details', icon: Users },
         { id: 'bookings', label: 'Bookings', icon: ShoppingBasket },
         { id: 'complaints', label: 'Complaints', icon: MessageSquareWarning },
         { id: 'payments', label: 'Payments', icon: IndianRupee },
         { id: 'employees', label: 'Employee Details', icon: Users },
-        { id: 'drivers', label: 'Driver Details', icon: Car },
+        { id: 'captains', label: 'Captain Details', icon: Car },
+        { id: 'sanitaryworkers', label: 'Sanitary Worker Details', icon: Users },
         { id: 'broadcast', label: 'Broadcast', icon: Megaphone },
+        { id: 'staff-notice', label: 'Staff Notice', icon: Megaphone },
         { id: 'ai-management', label: 'AI Management', icon: Bot },
         { id: 'subscription-management', label: 'Subscription Model', icon: Settings },
         { id: 'ip-tracker', label: 'IP Tracker', icon: Target },

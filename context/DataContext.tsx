@@ -15,11 +15,12 @@ const initialSubscriptionPlans: SubscriptionPlans = {
 
 // --- MOCK DATABASE (for initial seeding) ---
 const initialUsers: User[] = [
-    { name: 'Admin Two', householdId: 'HH-ADMN-1746', identifier: '9064201746', password: 'adminpassword', role: 'admin', status: 'active', hasGreenBadge: true, bookingReminders: false, profilePicture: '', email: 'admin2@ecotrack.com', createdAt: new Date(2024, 5, 1), outstandingBalance: 0, familySize: 1, address: { area: 'Admin Area', landmark: 'Admin Building', pincode: '000000' } },
-    { name: 'Jane Doe', householdId: 'HH-JANE-9876', identifier: 'jane.doe@example.com', password: 'Password@123', role: 'household', status: 'active', hasGreenBadge: false, bookingReminders: true, profilePicture: '', email: 'jane.doe@example.com', createdAt: new Date(2024, 6, 10), outstandingBalance: 150, familySize: 6, address: { area: 'Willow Creek', landmark: 'Near Park', pincode: '123456' } },
-    { name: 'SHYANTAN BISWAS', householdId: 'ADM-SHYA-9052', identifier: '9635929052', password: 'Password@123', role: 'admin', status: 'active', hasGreenBadge: true, bookingReminders: true, profilePicture: '', email: 'shyantanbiswas7@gmail.com', createdAt: new Date(2024, 5, 1), outstandingBalance: 75, familySize: 4, address: { area: 'Main Street', landmark: 'City Hall', pincode: '700001' } },
-    { name: 'Ravi Kumar', householdId: 'EMP-RAVI-1234', identifier: '8888888888', password: 'password123', role: 'employee', status: 'active', createdAt: new Date(2024, 5, 2), attendanceStatus: 'on_leave', familySize: 1, address: { area: 'Staff Quarters', landmark: 'Unit 5', pincode: '110022' }, outstandingBalance: 0 },
-    { name: 'Suresh Singh', householdId: 'DRV-SURE-5678', identifier: '9999999999', password: 'password123', role: 'driver', status: 'active', createdAt: new Date(2024, 5, 3), attendanceStatus: 'on_leave', familySize: 1, address: { area: 'Staff Quarters', landmark: 'Unit 8', pincode: '110022' }, outstandingBalance: 0 },
+    { name: 'Admin Two', householdId: 'HH-ADMN-1746', identifier: '9064201746', password: 'Password@123', role: 'admin', status: 'active', hasGreenBadge: true, bookingReminders: false, profilePicture: '', email: 'admin2@ecotrack.com', createdAt: new Date(2024, 5, 1), outstandingBalance: 0, familySize: 1, address: { area: 'Admin Area', landmark: 'Admin Building', pincode: '000000' }, gramPanchayat: 'ANDAL' },
+    { name: 'Jane Doe', householdId: 'HH-JANE-9876', identifier: '9876543210', password: 'password', role: 'household', status: 'active', hasGreenBadge: false, bookingReminders: true, profilePicture: '', email: 'jane.doe@example.com', createdAt: new Date(2024, 6, 10), outstandingBalance: 150, familySize: 6, address: { area: 'Willow Creek', landmark: 'Near Park', pincode: '123456' }, gramPanchayat: 'UKHRA' },
+    { name: 'SHYANTAN BISWAS', householdId: 'ADM-SHYA-9052', identifier: '9635929052', password: 'Password@123', role: 'admin', status: 'active', hasGreenBadge: true, bookingReminders: true, profilePicture: '', email: 'shyantanbiswas7@gmail.com', createdAt: new Date(2024, 5, 1), outstandingBalance: 75, familySize: 4, address: { area: 'Main Street', landmark: 'City Hall', pincode: '700001' }, gramPanchayat: 'KAJORA' },
+    { name: 'Ravi Kumar', householdId: 'EMP-RAVI-1234', identifier: '8888888888', password: 'Password@123', role: 'employee', status: 'active', createdAt: new Date(2024, 5, 2), attendanceStatus: 'on_leave', familySize: 1, address: { area: 'Staff Quarters', landmark: 'Unit 5', pincode: '110022' }, outstandingBalance: 0, email: 'ravi.k@staff.com', gramPanchayat: 'KHANDRA' },
+    { name: 'Suresh Singh', householdId: 'CPT-SURE-5678', identifier: '9999999999', password: 'Password@123', role: 'captain', status: 'active', createdAt: new Date(2024, 5, 3), attendanceStatus: 'on_leave', familySize: 1, address: { area: 'Staff Quarters', landmark: 'Unit 8', pincode: '110022' }, outstandingBalance: 0, email: 'suresh.s@staff.com', gramPanchayat: 'DAKSHINKHANDA' },
+    { name: 'Amit Das', householdId: 'SNW-AMIT-4321', identifier: '6666666666', password: 'Password@123', role: 'sanitaryworker', status: 'active', createdAt: new Date(2024, 5, 4), attendanceStatus: 'present', familySize: 1, address: { area: 'Staff Quarters', landmark: 'Unit 9', pincode: '110022' }, outstandingBalance: 0, email: 'amit.d@staff.com', gramPanchayat: 'MADANPUR' },
 ];
 
 const initialPayments: Payment[] = [
@@ -47,6 +48,7 @@ const initialMessages: Message[] = [
 ];
 
 const initialBroadcastMessage = "Welcome! A friendly reminder that monthly payments are due by the end of the week. Thank you!";
+const initialStaffBroadcastMessage = "Believe you can and you're halfway there. - Theodore Roosevelt";
 // --- END MOCK DATABASE ---
 
 
@@ -83,6 +85,7 @@ interface DataContextType {
   bookings: Booking[];
   messages: Message[];
   broadcastMessage: string | null;
+  staffBroadcastMessage: string | null;
   subscriptionPlans: SubscriptionPlans;
   addUser: (user: User) => void;
   updateUser: (updatedUser: User) => void;
@@ -97,6 +100,7 @@ interface DataContextType {
   addMessage: (recipientId: string, text: string) => void;
   markMessagesAsRead: (householdId: string) => void;
   updateBroadcastMessage: (message: string) => void;
+  updateStaffBroadcastMessage: (message: string) => void;
   updateUserAttendance: (householdId: string, status: 'present' | 'absent' | 'on_leave', loginTime: Date, ipAddress: string) => void;
   updateUserLocation: (householdId: string, location: { lat: number, lng: number, timestamp: Date }) => void;
   updateSubscriptionPlans: (newPlans: SubscriptionPlans) => void;
@@ -111,6 +115,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [bookings, setBookings] = useState<Booking[]>(() => loadFromStorage('ecotrack_bookings', initialBookings));
   const [messages, setMessages] = useState<Message[]>(() => loadFromStorage('ecotrack_messages', initialMessages));
   const [broadcastMessage, setBroadcastMessage] = useState<string | null>(() => loadFromStorage('ecotrack_broadcast', initialBroadcastMessage));
+  const [staffBroadcastMessage, setStaffBroadcastMessage] = useState<string | null>(() => loadFromStorage('ecotrack_staff_broadcast', initialStaffBroadcastMessage));
   const [subscriptionPlans, setSubscriptionPlans] = useState<SubscriptionPlans>(() => loadFromStorage('ecotrack_subscription_plans', initialSubscriptionPlans));
 
 
@@ -120,6 +125,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => { localStorage.setItem('ecotrack_bookings', JSON.stringify(bookings)); }, [bookings]);
   useEffect(() => { localStorage.setItem('ecotrack_messages', JSON.stringify(messages)); }, [messages]);
   useEffect(() => { localStorage.setItem('ecotrack_broadcast', JSON.stringify(broadcastMessage)); }, [broadcastMessage]);
+  useEffect(() => { localStorage.setItem('ecotrack_staff_broadcast', JSON.stringify(staffBroadcastMessage)); }, [staffBroadcastMessage]);
   useEffect(() => { localStorage.setItem('ecotrack_subscription_plans', JSON.stringify(subscriptionPlans)); }, [subscriptionPlans]);
 
   const addUser = (user: User) => {
@@ -231,6 +237,10 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const updateBroadcastMessage = (message: string) => {
     setBroadcastMessage(message);
   };
+  
+  const updateStaffBroadcastMessage = (message: string) => {
+    setStaffBroadcastMessage(message);
+  };
 
   const updateUserAttendance = (householdId: string, status: 'present' | 'absent' | 'on_leave', loginTime: Date, ipAddress: string) => {
     setUsers(prev => prev.map(u => 
@@ -248,7 +258,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setSubscriptionPlans(newPlans);
   };
 
-  const value = { users, payments, complaints, bookings, messages, broadcastMessage, subscriptionPlans, addUser, updateUser, deleteUser, clearUserWarning, addPayment, updatePayment, addComplaint, updateComplaint, addBooking, updateBooking, addMessage, markMessagesAsRead, updateBroadcastMessage, updateUserAttendance, updateUserLocation, updateSubscriptionPlans };
+  const value = { users, payments, complaints, bookings, messages, broadcastMessage, staffBroadcastMessage, subscriptionPlans, addUser, updateUser, deleteUser, clearUserWarning, addPayment, updatePayment, addComplaint, updateComplaint, addBooking, updateBooking, addMessage, markMessagesAsRead, updateBroadcastMessage, updateStaffBroadcastMessage, updateUserAttendance, updateUserLocation, updateSubscriptionPlans };
 
   return (
     <DataContext.Provider value={value}>

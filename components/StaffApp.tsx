@@ -1,14 +1,48 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
-import { MapPin, LogOut, Clock, CheckCircle, XCircle, Flame } from 'lucide-react';
-import Header from './Header'; // can reuse the header
+import { LayoutDashboard, User as UserIcon } from 'lucide-react';
+import Header from './Header';
+import StaffDashboard from './StaffDashboard';
+import StaffProfile from './StaffProfile';
+import StaffNoticeModal from './StaffNoticeModal';
+
+type StaffView = 'dashboard' | 'profile';
 
 const StaffApp: React.FC = () => {
-    const { user, logout } = useAuth();
-    const { updateUserLocation } = useData();
+    const { user } = useAuth();
+    const { updateUserLocation, staffBroadcastMessage } = useData();
     const [locationStatus, setLocationStatus] = useState('Initializing...');
     const locationWatcherId = useRef<number | null>(null);
+    const [currentView, setCurrentView] = useState<StaffView>('dashboard');
+    const [isNoticeVisible, setNoticeVisible] = useState(false);
+    
+    const isPanchayatMissing = !user?.gramPanchayat;
+    const isPhotoMissing = !user?.profilePicture;
+
+    // Force profile view if photo or panchayat is missing
+    useEffect(() => {
+        if (user && (isPhotoMissing || isPanchayatMissing)) {
+            setCurrentView('profile');
+        } else if (user && !isPhotoMissing && !isPanchayatMissing && currentView === 'profile') {
+            // If they were on profile and just updated, don't force them away
+        } else if (user && !isPhotoMissing && !isPanchayatMissing) {
+            setCurrentView('dashboard');
+        }
+    }, [user, isPhotoMissing, isPanchayatMissing]);
+
+    // Show staff notice modal once per session
+    useEffect(() => {
+        if (staffBroadcastMessage && sessionStorage.getItem('staffNoticeDismissed') !== 'true') {
+            setNoticeVisible(true);
+        }
+    }, [staffBroadcastMessage]);
+
+    const handleDismissNotice = () => {
+        setNoticeVisible(false);
+        sessionStorage.setItem('staffNoticeDismissed', 'true');
+    };
+
 
     useEffect(() => {
         if (!navigator.geolocation) {
@@ -36,7 +70,7 @@ const StaffApp: React.FC = () => {
 
         const options: PositionOptions = {
             enableHighAccuracy: true,
-            timeout: 20000, // Increased timeout
+            timeout: 20000,
             maximumAge: 0,
         };
 
@@ -50,72 +84,80 @@ const StaffApp: React.FC = () => {
         };
     }, [user, updateUserLocation]);
     
-    const isWorkdayOver = () => {
-        const now = new Date();
-        return now.getHours() >= 16; // 4 PM or later (16:00)
-    }
-
-    const getAttendanceIcon = () => {
-        if (user?.attendanceStatus === 'present') {
-            return <CheckCircle className="text-success w-8 h-8" />;
+    const renderView = () => {
+        switch(currentView) {
+            case 'profile':
+                return <StaffProfile />;
+            case 'dashboard':
+            default:
+                return <StaffDashboard locationStatus={locationStatus} />;
         }
-        if (user?.attendanceStatus === 'absent') {
-            return <XCircle className="text-red-500 w-8 h-8" />;
-        }
-        return <Clock className="text-slate-500 w-8 h-8" />;
     };
-
+    
     return (
         <div className="w-full max-w-lg mx-auto bg-card-light dark:bg-card-dark shadow-2xl flex flex-col h-screen">
             <Header />
-            <main className="flex-grow p-6 flex flex-col items-center text-center bg-background-light dark:bg-background-dark">
-                <h2 className="text-3xl font-bold text-heading-light dark:text-heading-dark mb-2">Welcome, {user?.name.split(' ')[0]}</h2>
-                <p className="text-lg text-text-light dark:text-text-dark capitalize mb-6">{user?.role} Dashboard</p>
-
-                <div className="w-full space-y-4">
-                     <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark p-4 rounded-lg shadow-md">
-                            <h3 className="font-semibold text-heading-light dark:text-heading-dark flex items-center justify-center text-lg">
-                                <Clock className="mr-2" /> Attendance
-                            </h3>
-                            <div className="flex items-center justify-center space-x-2 mt-2 text-xl">
-                                {getAttendanceIcon()}
-                                <p className="font-bold capitalize">{user?.attendanceStatus}</p>
-                            </div>
-                            {user?.lastLoginTime && <p className="text-xs text-slate-500 mt-1">In: {user.lastLoginTime.toLocaleTimeString()}</p>}
-                        </div>
-                         <div className="bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark p-4 rounded-lg shadow-md">
-                            <h3 className="font-semibold text-heading-light dark:text-heading-dark flex items-center justify-center text-lg">
-                                <Flame className="mr-2 text-orange-500" /> Streak
-                            </h3>
-                            <div className="text-center mt-2">
-                                <p className="text-3xl font-bold text-orange-500">{user?.loginStreak || 0} Day{user?.loginStreak !== 1 && 's'}</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark p-4 rounded-lg shadow-md">
-                        <h3 className="font-semibold text-heading-light dark:text-heading-dark flex items-center justify-center text-lg">
-                            <MapPin className="mr-2" /> Location Status
-                        </h3>
-                        <p className="text-sm text-text-light dark:text-text-dark mt-2 px-2">{locationStatus}</p>
-                    </div>
-                </div>
-
-                <div className="mt-auto w-full pt-6">
-                    {isWorkdayOver() && <p className="text-sm text-success mb-2 font-semibold animate-pulse">Workday complete. You may log out.</p>}
-                    <button 
-                        onClick={logout} 
-                        className="w-full bg-gradient-to-r from-red-500 to-orange-500 text-white font-bold py-4 rounded-lg flex items-center justify-center text-lg shadow-lg transition-transform transform hover:scale-105"
-                    >
-                        <LogOut className="mr-3" /> End Day & Logout
-                    </button>
-                    <p className="text-xs text-slate-400 mt-4 px-4">
-                        Note: Location tracking is active. This app needs to remain open in your browser to function correctly. Closing the app will stop location updates.
-                    </p>
-                </div>
+            <main className="flex-grow p-6 overflow-y-auto pb-24 bg-background-light dark:bg-background-dark">
+               {renderView()}
             </main>
+            <StaffBottomNav 
+                currentView={currentView} 
+                setCurrentView={setCurrentView} 
+                actionRequired={isPhotoMissing || isPanchayatMissing} 
+            />
+            {isNoticeVisible && staffBroadcastMessage && (
+                <StaffNoticeModal message={staffBroadcastMessage} onDismiss={handleDismissNotice} />
+            )}
         </div>
     );
 };
+
+
+interface StaffBottomNavProps {
+  currentView: StaffView;
+  setCurrentView: (view: StaffView) => void;
+  actionRequired: boolean;
+}
+
+const StaffBottomNav: React.FC<StaffBottomNavProps> = ({ currentView, setCurrentView, actionRequired }) => {
+    
+    const navItems = [
+        { view: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+        { view: 'profile', icon: UserIcon, label: 'Profile' },
+    ];
+    
+    const handleNavClick = (view: StaffView) => {
+        if (actionRequired && view !== 'profile') {
+            // Navigation is disabled, do nothing.
+            return;
+        }
+        setCurrentView(view);
+    }
+
+    return (
+        <nav className="fixed bottom-0 left-0 right-0 w-full max-w-lg mx-auto bg-card-light/80 dark:bg-card-dark/80 backdrop-blur-lg border-t border-border-light dark:border-border-dark shadow-t-2xl z-20">
+            <div className="flex justify-around items-center h-16">
+                {navItems.map((item) => {
+                    const isDisabled = actionRequired && item.view !== 'profile';
+                    return (
+                        <button
+                            key={item.label}
+                            onClick={() => handleNavClick(item.view as StaffView)}
+                            disabled={isDisabled}
+                            className={`relative flex flex-col items-center justify-center w-full transition-all duration-300 h-full ${
+                            currentView === item.view ? 'text-primary' : 'text-secondary dark:text-secondary-dark hover:text-primary'
+                            } ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        >
+                            <item.icon size={24} strokeWidth={currentView === item.view ? 2.5 : 2} />
+                            <span className={`text-xs font-semibold mt-1 transition-opacity ${currentView === item.view ? 'opacity-100' : 'opacity-70'}`}>{item.label}</span>
+                            {currentView === item.view && <div className="absolute -bottom-1 w-8 h-1 bg-gradient-to-r from-primary to-accent rounded-full mt-1 transition-all"></div>}
+                        </button>
+                    )
+                })}
+            </div>
+        </nav>
+    );
+}
+
 
 export default StaffApp;
