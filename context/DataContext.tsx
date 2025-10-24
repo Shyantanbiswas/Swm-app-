@@ -15,7 +15,7 @@ const initialSubscriptionPlans: SubscriptionPlans = {
 
 // --- MOCK DATABASE (for initial seeding) ---
 const initialUsers: User[] = [
-    { name: 'Admin Two', householdId: 'HH-ADMN-1746', identifier: '9064201746', password: 'Password@123', role: 'admin', status: 'active', hasGreenBadge: true, bookingReminders: false, profilePicture: '', email: 'admin2@ecotrack.com', createdAt: new Date(2024, 5, 1), outstandingBalance: 0, familySize: 1, address: { area: 'Admin Area', landmark: 'Admin Building', pincode: '000000' }, gramPanchayat: 'ANDAL' },
+    { name: 'Admin Two', householdId: 'HH-ADMN-1746', identifier: '9064201746', password: 'Password@123', role: 'admin', status: 'active', hasGreenBadge: true, bookingReminders: false, profilePicture: '', email: 'admin2@andalg2g.com', createdAt: new Date(2024, 5, 1), outstandingBalance: 0, familySize: 1, address: { area: 'Admin Area', landmark: 'Admin Building', pincode: '000000' }, gramPanchayat: 'ANDAL' },
     { name: 'Jane Doe', householdId: 'HH-JANE-9876', identifier: '9876543210', password: 'password', role: 'household', status: 'active', hasGreenBadge: false, bookingReminders: true, profilePicture: '', email: 'jane.doe@example.com', createdAt: new Date(2024, 6, 10), outstandingBalance: 150, familySize: 6, address: { area: 'Willow Creek', landmark: 'Near Park', pincode: '123456' }, gramPanchayat: 'UKHRA' },
     { name: 'SHYANTAN BISWAS', householdId: 'ADM-SHYA-9052', identifier: '9635929052', password: 'Password@123', role: 'admin', status: 'active', hasGreenBadge: true, bookingReminders: true, profilePicture: '', email: 'shyantanbiswas7@gmail.com', createdAt: new Date(2024, 5, 1), outstandingBalance: 75, familySize: 4, address: { area: 'Main Street', landmark: 'City Hall', pincode: '700001' }, gramPanchayat: 'KAJORA' },
     { name: 'Ravi Kumar', householdId: 'EMP-RAVI-1234', identifier: '8888888888', password: 'Password@123', role: 'employee', status: 'active', createdAt: new Date(2024, 5, 2), attendanceStatus: 'on_leave', familySize: 1, address: { area: 'Staff Quarters', landmark: 'Unit 5', pincode: '110022' }, outstandingBalance: 0, email: 'ravi.k@staff.com', gramPanchayat: 'KHANDRA' },
@@ -47,7 +47,7 @@ const initialMessages: Message[] = [
     { id: 'MSG-002', recipientId: 'ADM-SHYA-9052', text: 'Your "Driver Behavior" complaint (CMPT-002) has been reviewed. We have taken action and apologize for the inconvenience.', timestamp: new Date(), read: true },
 ];
 
-const initialBroadcastMessage = "Welcome! A friendly reminder that monthly payments are due by the end of the week. Thank you!";
+const initialBroadcastMessage = "Eco Track: A friendly reminder that monthly payments are due by the end of the week. Thank you!";
 const initialStaffBroadcastMessage = "Believe you can and you're halfway there. - Theodore Roosevelt";
 // --- END MOCK DATABASE ---
 

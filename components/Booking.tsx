@@ -50,7 +50,7 @@ const BookingComponent: React.FC = () => {
         addBooking(newBooking);
 
         // Trigger email notification
-        const subject = `New eCart Booking Confirmation: ${newBooking.id}`;
+        const subject = `Eco Track | New eCart Booking: ${newBooking.id}`;
         const feeDetails = newBooking.bookingFee > 0 
             ? `Calculated Fee: ₹${newBooking.bookingFee}` 
             : (newBooking.attendeeCount > 1000 ? 'Fee to be adjusted by admin.' : 'Standard fee applies.');
@@ -78,7 +78,7 @@ ${feeDetails}
 Please coordinate with the user for payment confirmation. The amount has been added to their outstanding balance.
 
 Thank you,
-EcoTrack App System
+Eco Track App System
         `;
         const mailtoLink = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body.trim())}`;
         // window.open(mailtoLink, '_blank'); // This can be disruptive, so commented out for now.

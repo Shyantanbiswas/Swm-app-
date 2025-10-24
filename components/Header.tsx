@@ -24,7 +24,10 @@ const Header: React.FC = () => {
       <div className="flex justify-between items-center">
         <div className="flex items-center space-x-3">
            <Recycle className="h-8 w-8" style={{ filter: 'drop-shadow(0 2px 3px rgba(0,0,0,0.2))' }}/>
-           <h1 className="text-2xl font-bold" style={{ textShadow: '1px 1px 3px rgba(0,0,0,0.2)' }}>EcoTrack</h1>
+           <div>
+            <h1 className="text-2xl font-bold" style={{ textShadow: '1px 1px 3px rgba(0,0,0,0.2)' }}>Eco Track</h1>
+            <p className="text-xs opacity-80 -mt-1">powered by Andal Gray to Green</p>
+           </div>
         </div>
         <div className="flex items-center space-x-2">
           <div className="relative">

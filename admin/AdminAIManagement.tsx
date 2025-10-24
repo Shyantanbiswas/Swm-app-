@@ -163,7 +163,7 @@ const AdminAIManagement: React.FC = () => {
                         householdId: `${rolePrefix[inputStaff.role || 'employee']}-${inputStaff.identifier.slice(-4)}-${Date.now().toString().slice(-4)}`,
                         identifier: inputStaff.identifier,
                         password: `password${Math.floor(1000 + Math.random() * 9000)}`, // Random temp password
-                        email: `${(inputStaff.name?.split(' ')[0] || 'staff').toLowerCase()}.${inputStaff.identifier.slice(-4)}@ecotrack.dev`,
+                        email: `${(inputStaff.name?.split(' ')[0] || 'staff').toLowerCase()}.${inputStaff.identifier.slice(-4)}@andalg2g.dev`,
                         role: inputStaff.role || 'employee',
                         status: 'active',
                         createdAt: new Date(),

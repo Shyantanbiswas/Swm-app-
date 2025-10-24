@@ -18,9 +18,9 @@ const LoginSelector: React.FC<LoginSelectorProps> = ({ onSelectMode }) => {
                 </div>
                 <div className="flex justify-center items-center gap-3 mb-6">
                     <Recycle className="h-10 w-10 text-primary" />
-                    <h1 className="text-4xl font-bold text-heading-light dark:text-heading-dark">EcoTrack</h1>
+                    <h1 className="text-4xl font-bold text-heading-light dark:text-heading-dark">Eco Track</h1>
                 </div>
-                <p className="text-text-light dark:text-text-dark mb-8">Your partner in sustainable waste management.</p>
+                <p className="text-text-light dark:text-text-dark mb-8">powered by Andal Gray to Green</p>
                 
                 <div className="bg-card-light dark:bg-card-dark p-8 rounded-2xl shadow-xl w-full space-y-4 animate-scale-in">
                     <h2 className="text-2xl font-semibold text-heading-light dark:text-heading-dark mb-4">{t('chooseLogin')}</h2>

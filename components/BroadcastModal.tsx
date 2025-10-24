@@ -12,7 +12,7 @@ const BroadcastModal: React.FC<BroadcastModalProps> = ({ message, onDismiss }) =
             <div className="bg-card-light dark:bg-card-dark rounded-xl shadow-2xl w-full max-w-md relative transform transition-all animate-scale-in text-center overflow-hidden">
                 <div className="bg-gradient-to-r from-primary to-accent p-6 text-white">
                     <Megaphone size={40} className="mx-auto" />
-                    <h3 className="text-2xl font-bold mt-3">A Message from EcoTrack</h3>
+                    <h3 className="text-2xl font-bold mt-3">A Message from Eco Track</h3>
                 </div>
                 
                 <button

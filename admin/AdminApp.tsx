@@ -100,7 +100,7 @@ const AdminSidebar: React.FC<{currentView: AdminView, setCurrentView: (view: Adm
         <nav className="w-64 bg-card-light dark:bg-card-dark flex flex-col border-r border-border-light dark:border-border-dark">
             <div className="flex items-center space-x-3 p-4 border-b border-border-light dark:border-border-dark">
                <Recycle className="h-8 w-8 text-primary" />
-               <h1 className="text-xl font-bold text-heading-light dark:text-heading-dark">EcoTrack Admin</h1>
+               <h1 className="text-xl font-bold text-heading-light dark:text-heading-dark">Eco Track Admin</h1>
             </div>
             <ul className="flex-1 py-4">
                 {navItems.map(item => (
