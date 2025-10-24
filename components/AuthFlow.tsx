@@ -190,7 +190,7 @@ const AuthFlow: React.FC<AuthFlowProps> = ({ onBack }) => {
                     <Recycle className="h-10 w-10 text-primary" />
                     <h1 className="text-4xl font-bold text-heading-light dark:text-heading-dark">Eco Track</h1>
                 </div>
-                <p className="text-text-light dark:text-text-dark mb-8">powered by Andal Gray to Green</p>
+                <p className="text-text-light dark:text-text-dark mb-8">powered by <span className="font-bold bg-gradient-to-r from-primary via-accent to-info text-transparent bg-clip-text bg-size-300 animate-gradient-pan">Andal Gray to Green</span></p>
                 
                 <div className="bg-card-light dark:bg-card-dark p-8 rounded-2xl shadow-xl w-full relative">
                     <button onClick={onBack} className="absolute top-4 left-4 text-slate-500 hover:text-primary">

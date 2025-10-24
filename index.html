@@ -73,7 +73,12 @@
               'pulse-glow': {
                 '0%, 100%': { opacity: '1', boxShadow: 'none' },
                 '50%': { opacity: '0.9', boxShadow: '0 0 15px 0 rgba(16, 185, 129, 0.5)' },
-              }
+              },
+              'gradient-pan': {
+                '0%': { 'background-position': '0% 50%' },
+                '50%': { 'background-position': '100% 50%' },
+                '100%': { 'background-position': '0% 50%' },
+              },
             },
             animation: {
               'fade-in': 'fade-in 0.5s ease-out forwards',
@@ -81,6 +86,10 @@
               'fade-in-up': 'fade-in-up 0.5s ease-out forwards',
               'scale-in': 'scale-in 0.3s ease-out forwards',
               'pulse-glow': 'pulse-glow 2s infinite ease-in-out',
+              'gradient-pan': 'gradient-pan 4s ease-in-out infinite',
+            },
+            backgroundSize: {
+              '300': '300% 300%',
             },
           },
         },

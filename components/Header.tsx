@@ -26,7 +26,7 @@ const Header: React.FC = () => {
            <Recycle className="h-8 w-8" style={{ filter: 'drop-shadow(0 2px 3px rgba(0,0,0,0.2))' }}/>
            <div>
             <h1 className="text-2xl font-bold" style={{ textShadow: '1px 1px 3px rgba(0,0,0,0.2)' }}>Eco Track</h1>
-            <p className="text-xs opacity-80 -mt-1">powered by Andal Gray to Green</p>
+            <p className="text-xs opacity-80 -mt-1">powered by <span className="font-semibold bg-gradient-to-r from-yellow-300 via-amber-400 to-orange-500 text-transparent bg-clip-text bg-size-300 animate-gradient-pan">Andal Gray to Green</span></p>
            </div>
         </div>
         <div className="flex items-center space-x-2">
