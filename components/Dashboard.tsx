@@ -1,13 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import type { User, Booking } from '../types';
-import { Truck, Video, BarChart2, MapPin, BellRing, IndianRupee, CheckCircle, Flame } from 'lucide-react';
+import type { User, Booking, View } from '../types';
+import { ViewType } from '../types';
+import { Truck, Video, BarChart2, Package, BellRing, IndianRupee, CheckCircle, Flame, Droplets, Recycle, CircleDot } from 'lucide-react';
 import { PieChart, Pie, ResponsiveContainer, Cell, Sector } from 'recharts';
 import { useLanguage } from '../context/LanguageContext';
+import { useData } from '../context/DataContext';
+import { useAuth } from '../context/AuthContext';
 
 interface DashboardProps {
   user: User;
   bookings: Booking[];
-  users: User[];
+  setCurrentView: (view: View) => void;
 }
 
 const communityData = [
@@ -41,12 +44,75 @@ const renderActiveShape = (props: any) => {
   );
 };
 
+const DailyWasteDeclaration: React.FC = () => {
+    const { user } = useAuth();
+    const { addWasteLog } = useData();
+    const [submittedType, setSubmittedType] = useState<string | null>(null);
 
-const Dashboard: React.FC<DashboardProps> = ({ user, bookings, users }) => {
+    const getTodayDateString = () => new Date().toISOString().split('T')[0];
+
+    useEffect(() => {
+        if(user) {
+            const todayKey = `ecotrack_waste_log_${user.householdId}_${getTodayDateString()}`;
+            const storedType = localStorage.getItem(todayKey);
+            if (storedType) {
+                setSubmittedType(storedType);
+            }
+        }
+    }, [user]);
+
+
+    const handleSubmit = (wasteType: 'Wet' | 'Dry' | 'Mixed') => {
+        if (!user) return;
+        const todayKey = `ecotrack_waste_log_${user.householdId}_${getTodayDateString()}`;
+        
+        const newLog = {
+            id: `WLOG-${Date.now()}`,
+            householdId: user.householdId,
+            date: getTodayDateString(),
+            wasteType: wasteType
+        };
+
+        addWasteLog(newLog);
+        localStorage.setItem(todayKey, wasteType);
+        setSubmittedType(wasteType);
+    };
+
+    if (submittedType) {
+        return (
+             <div className="bg-card-light dark:bg-card-dark p-4 rounded-xl shadow-md text-center border border-border-light dark:border-border-dark animate-fade-in-up">
+                <h3 className="font-semibold text-lg text-heading-light dark:text-heading-dark">Thanks for your submission!</h3>
+                <p className="text-text-light dark:text-text-dark mt-2">You have declared <span className="font-bold text-primary">{submittedType} Waste</span> for today.</p>
+            </div>
+        )
+    }
+
+    return (
+        <div className="bg-card-light dark:bg-card-dark p-4 rounded-xl shadow-md border border-border-light dark:border-border-dark animate-fade-in-up">
+            <h3 className="font-semibold text-lg text-center mb-3 text-heading-light dark:text-heading-dark">What type of waste are you giving today?</h3>
+            <div className="grid grid-cols-3 gap-3">
+                <button onClick={() => handleSubmit('Wet')} className="flex flex-col items-center p-3 rounded-lg bg-blue-100/50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-300 transition-colors">
+                    <Droplets size={24} />
+                    <span className="font-semibold mt-1 text-sm">Wet</span>
+                </button>
+                 <button onClick={() => handleSubmit('Dry')} className="flex flex-col items-center p-3 rounded-lg bg-amber-100/50 dark:bg-amber-900/30 hover:bg-amber-100 dark:hover:bg-amber-900/50 text-amber-600 dark:text-amber-300 transition-colors">
+                    <Recycle size={24} />
+                    <span className="font-semibold mt-1 text-sm">Dry</span>
+                </button>
+                 <button onClick={() => handleSubmit('Mixed')} className="flex flex-col items-center p-3 rounded-lg bg-slate-200/50 dark:bg-slate-700/50 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 transition-colors">
+                    <CircleDot size={24} />
+                    <span className="font-semibold mt-1 text-sm">Mixed</span>
+                </button>
+            </div>
+        </div>
+    )
+}
+
+
+const Dashboard: React.FC<DashboardProps> = ({ user, bookings, setCurrentView }) => {
   const { t } = useLanguage();
   const [showAd, setShowAd] = useState(false);
   const [upcomingBooking, setUpcomingBooking] = useState<Booking | null>(null);
-  const [activeDriver, setActiveDriver] = useState<User | null>(null);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   
   const totalWaste = communityData.reduce((sum, entry) => sum + entry.value, 0);
@@ -58,19 +124,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, bookings, users }) => {
   const onPieLeave = useCallback(() => {
       setActiveIndex(null);
   }, [setActiveIndex]);
-
-
-  useEffect(() => {
-    // Find a captain with a recent location update (e.g., within the last 15 minutes)
-    const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
-    const driver = users.find(
-      (u) =>
-        u.role === 'captain' &&
-        u.lastLocation &&
-        u.lastLocation.timestamp > fifteenMinutesAgo
-    );
-    setActiveDriver(driver || null);
-  }, [users]); // This will re-run whenever the user data (including locations) changes
 
   useEffect(() => {
     if (user.bookingReminders) {
@@ -125,6 +178,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, bookings, users }) => {
             </div>
         </div>
       </div>
+      
+      <DailyWasteDeclaration />
 
 
       {upcomingBooking && (
@@ -138,41 +193,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user, bookings, users }) => {
           </div>
         </div>
       )}
-
-      <div className="bg-card-light dark:bg-card-dark p-4 rounded-xl shadow-md transition-all hover:shadow-lg hover:-translate-y-1 animate-fade-in-up border border-border-light dark:border-border-dark" style={{animationDelay: '300ms'}}>
-        <h3 className="font-semibold text-lg mb-3 flex items-center text-heading-light dark:text-heading-dark"><MapPin className="mr-2 text-primary" />{t('liveCollectionStatus')}</h3>
-        {activeDriver && activeDriver.lastLocation ? (
-          <div className="space-y-3">
-             <p className="text-sm text-text-light dark:text-text-dark">
-                Captain <span className="font-bold text-primary">{activeDriver.name}</span> is on the way.
-            </p>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-                Last updated: {activeDriver.lastLocation.timestamp.toLocaleTimeString()}
-            </p>
-            {user.lastLocation ? (
-                 <a
-                    href={`https://www.google.com/maps/dir/?api=1&origin=${user.lastLocation.lat},${user.lastLocation.lng}&destination=${activeDriver.lastLocation.lat},${activeDriver.lastLocation.lng}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full inline-flex items-center justify-center bg-gradient-to-r from-primary to-accent text-white font-bold py-2 px-4 rounded-lg shadow-md hover:shadow-glow-primary transition-all transform hover:scale-105"
-                >
-                    <Truck className="mr-2" size={20} /> {t('viewOnMap')}
-                </a>
-            ) : (
-                 <button
-                    disabled
-                    className="w-full inline-flex items-center justify-center bg-slate-300 dark:bg-slate-600 text-slate-500 dark:text-slate-400 font-bold py-2 px-4 rounded-lg cursor-not-allowed"
-                >
-                    <Truck className="mr-2" size={20} /> Enable your location to see captain
-                </button>
-            )}
-          </div>
-        ) : (
-          <p className="text-sm text-text-light dark:text-text-dark text-center py-4">
-              {t('noActiveVehicle')}
-          </p>
-        )}
-      </div>
+      
+      <button onClick={() => setCurrentView(ViewType.Sell)} className="bg-card-light dark:bg-card-dark p-4 rounded-xl shadow-md transition-all hover:shadow-lg hover:-translate-y-1 animate-fade-in-up border border-border-light dark:border-border-dark w-full text-left" style={{animationDelay: '300ms'}}>
+        <h3 className="font-semibold text-lg mb-1 flex items-center text-heading-light dark:text-heading-dark"><Package className="mr-2 text-primary" />Sell Materials</h3>
+        <p className="text-sm text-text-light dark:text-text-dark">Have recyclables like paper or plastic? Sell them here.</p>
+      </button>
 
       <div className="bg-card-light dark:bg-card-dark p-4 rounded-xl shadow-md transition-all hover:shadow-lg hover:-translate-y-1 animate-fade-in-up border border-border-light dark:border-border-dark" style={{animationDelay: '400ms'}}>
         <h3 className="font-semibold text-lg mb-3 flex items-center text-heading-light dark:text-heading-dark"><BarChart2 className="mr-2 text-primary" />{t('communityWasteDiversion')}</h3>

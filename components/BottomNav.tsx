@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Home, IndianRupee, History, Mail, ShoppingBasket, User as UserIcon } from 'lucide-react';
+import { Home, IndianRupee, History, Truck, ShoppingBasket, User as UserIcon } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { View, ViewType } from '../types';
@@ -24,11 +24,11 @@ const BottomNav: React.FC<BottomNavProps> = ({ currentView, setCurrentView, prof
   const navItems = useMemo(() => [
     { view: ViewType.Dashboard, icon: Home, label: t('home') },
     { view: ViewType.Payment, icon: IndianRupee, label: t('pay') },
-    { view: ViewType.Messages, icon: Mail, label: t('inbox'), badgeCount: unreadCount },
+    { view: ViewType.Track, icon: Truck, label: t('track') },
     { view: ViewType.Booking, icon: ShoppingBasket, label: t('book') },
     { view: ViewType.History, icon: History, label: t('history') },
     { view: ViewType.Profile, icon: UserIcon, label: t('profile') },
-  ], [t, unreadCount]);
+  ], [t]);
 
   const handleNavClick = (view: View) => {
     if (profileActionRequired && view !== ViewType.Profile) {
@@ -53,11 +53,6 @@ const BottomNav: React.FC<BottomNavProps> = ({ currentView, setCurrentView, prof
             >
               <div className="relative">
                   <item.icon size={24} strokeWidth={currentView === item.view ? 2.5 : 2} />
-                  {item.badgeCount && item.badgeCount > 0 && (
-                      <span className="absolute -top-1 -right-2 w-4 h-4 text-[10px] bg-red-500 text-white font-bold rounded-full flex items-center justify-center">
-                          {item.badgeCount > 9 ? '9+' : item.badgeCount}
-                      </span>
-                  )}
               </div>
               <span className={`text-xs font-semibold mt-1 transition-opacity ${currentView === item.view ? 'opacity-100' : 'opacity-70'}`}>{item.label}</span>
               {currentView === item.view && <div className="absolute -bottom-1 w-8 h-1 bg-gradient-to-r from-primary to-accent rounded-full mt-1 transition-all"></div>}

@@ -9,6 +9,9 @@ export enum ViewType {
     Booking = 'Booking',
     Profile = 'Profile',
     Messages = 'Messages',
+    Track = 'Track',
+    Sell = 'Sell',
+    SellHistory = 'SellHistory',
 }
 
 export type View = ViewType;
@@ -37,6 +40,7 @@ export interface User {
     warningMessage?: string;
     hasGreenBadge?: boolean;
     bookingReminders?: boolean;
+    pushNotificationsEnabled?: boolean;
     profilePicture?: string;
     email: string; // User's mandatory email address
     createdAt: Date;
@@ -101,4 +105,34 @@ export interface Message {
   text: string;
   timestamp: Date;
   read: boolean;
+}
+
+export interface WasteLog {
+    id: string;
+    householdId: string;
+    date: string; // YYYY-MM-DD format
+    wasteType: 'Dry' | 'Wet' | 'Mixed';
+}
+
+export interface SellRequest {
+    id: string;
+    householdId: string;
+    date: Date;
+    materials: {
+        plastic: boolean;
+        paper: boolean;
+        bottles: boolean;
+        glass: boolean;
+        other: string;
+    };
+    weightKg: number;
+    status: 'Pending' | 'Approved' | 'Completed';
+}
+
+export interface SellRequestMessage {
+    id: string;
+    sellRequestId: string;
+    sender: 'user' | 'admin';
+    text: string;
+    timestamp: Date;
 }

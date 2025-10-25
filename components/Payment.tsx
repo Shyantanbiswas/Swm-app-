@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { QRCodeCanvas as QRCode } from 'qrcode.react';
-import { CheckCircle, Wallet, X, Loader2, QrCode, UploadCloud, Check, XCircle, ShieldCheck } from 'lucide-react';
+import { CheckCircle, Wallet, X, Loader2, QrCode, UploadCloud, Check, XCircle, ShieldCheck, ArrowRight } from 'lucide-react';
 
 import type { Payment, View } from '../types';
 import { ViewType } from '../types';
@@ -48,7 +48,6 @@ const PaymentComponent: React.FC<PaymentComponentProps> = ({ setCurrentView }) =
             const reader = new FileReader();
             reader.onloadend = () => {
                 setScreenshotPreview(reader.result as string);
-                setStep('upload');
             };
             reader.readAsDataURL(file);
         }
@@ -147,13 +146,12 @@ const PaymentComponent: React.FC<PaymentComponentProps> = ({ setCurrentView }) =
                 </div>
                 
                 <div className="mt-8 max-w-sm mx-auto p-4 rounded-lg bg-slate-100 dark:bg-slate-800/50 border border-border-light dark:border-border-dark">
-                    <p className="text-sm text-text-light dark:text-text-dark mb-4">After paying, upload a screenshot to confirm.</p>
-                     <input type="file" accept="image/*" ref={fileInputRef} onChange={handleFileSelect} className="hidden" />
+                    <p className="text-sm text-text-light dark:text-text-dark mb-4">After paying, continue to upload your screenshot.</p>
                      <button 
-                        onClick={() => fileInputRef.current?.click()}
+                        onClick={() => setStep('upload')}
                         className="w-full bg-gradient-to-r from-primary to-accent text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center text-lg shadow-lg hover:shadow-glow-primary transition-all transform hover:scale-105"
                     >
-                        <UploadCloud className="mr-3" /> Upload Screenshot
+                        I've Paid, Continue <ArrowRight className="ml-2" />
                     </button>
                 </div>
                 </>
@@ -162,20 +160,35 @@ const PaymentComponent: React.FC<PaymentComponentProps> = ({ setCurrentView }) =
                     <p className="text-lg text-success font-semibold">You have no outstanding balance. Thank you!</p>
                 </div>
             )}
+             <p className="text-xs text-slate-400 dark:text-slate-500 mt-6 flex items-center justify-center"><ShieldCheck size={14} className="mr-1.5"/> Secure & PCI DSS Compliant</p>
         </div>
     );
 
     const renderUploadStep = () => (
          <div className="text-center animate-scale-in">
-            <h2 className="text-3xl font-bold text-heading-light dark:text-heading-dark mb-2">Confirm Screenshot</h2>
-            <p className="text-text-light dark:text-text-dark mb-6">Please confirm this is the correct screenshot before submitting.</p>
+            <h2 className="text-3xl font-bold text-heading-light dark:text-heading-dark mb-2">Upload Screenshot</h2>
+            <p className="text-text-light dark:text-text-dark mb-6">To complete your payment verification, please upload a screenshot of your payment confirmation.</p>
+            
+            <input type="file" accept="image/*" ref={fileInputRef} onChange={handleFileSelect} className="hidden" />
+            <button 
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full max-w-sm mx-auto p-8 text-center border-2 border-dashed border-border-light dark:border-border-dark rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+            >
+                <UploadCloud className="mx-auto h-12 w-12 text-slate-400" />
+                <span className="mt-2 block text-sm font-semibold text-primary">
+                    {screenshotFile ? `Selected: ${screenshotFile.name}` : 'Click to Upload'}
+                </span>
+                <p className="mt-1 block text-xs text-text-light dark:text-text-dark">PNG, JPG, GIF up to 10MB</p>
+            </button>
+
             {screenshotPreview && (
-                <img src={screenshotPreview} alt="Payment screenshot preview" className="max-w-xs mx-auto max-h-64 object-contain rounded-lg border-2 border-primary shadow-lg mb-6"/>
+                <img src={screenshotPreview} alt="Payment screenshot preview" className="max-w-xs mx-auto max-h-48 object-contain rounded-lg border-2 border-primary shadow-lg my-4"/>
             )}
+
             <div className="mt-8 max-w-sm mx-auto space-y-4">
                  <button 
                     onClick={handleSubmitForVerification}
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || !screenshotPreview}
                     className="w-full bg-gradient-to-r from-primary to-accent text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center text-lg shadow-lg hover:shadow-glow-primary transition-all transform hover:scale-105 disabled:opacity-50"
                 >
                     {isSubmitting ? <Loader2 className="animate-spin mr-3"/> : <CheckCircle className="mr-3" />}
@@ -185,7 +198,7 @@ const PaymentComponent: React.FC<PaymentComponentProps> = ({ setCurrentView }) =
                     onClick={() => setStep('pay')}
                     className="w-full bg-slate-200 dark:bg-slate-600 text-slate-800 dark:text-slate-200 font-bold py-3 px-4 rounded-lg flex items-center justify-center text-lg"
                 >
-                    Cancel
+                    Back to Payment
                 </button>
             </div>
         </div>

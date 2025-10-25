@@ -1,92 +1,24 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { User, Shield, Save, CheckCircle, Camera, Upload, X, Mail, Globe, AlertTriangle, KeyRound } from 'lucide-react';
+import { useData } from '../context/DataContext';
+import { User, Shield, Save, CheckCircle, Camera, Upload, X, Mail, Globe, AlertTriangle, KeyRound, ChevronRight, MessageSquareWarning, HelpCircle, Bell, PenSquare, LifeBuoy } from 'lucide-react';
 import GramPanchayatSelector from './GramPanchayatSelector';
 import PasswordStrengthIndicator from './PasswordStrengthIndicator';
 import { useLanguage } from '../context/LanguageContext';
+import type { View } from '../types';
+import { ViewType } from '../types';
+import { SUPPORT_EMAIL } from '../constants';
 
-interface CameraModalProps {
-    onPictureTaken: (dataUrl: string) => void;
-    onClose: () => void;
+interface ProfileComponentProps {
+    setCurrentView: (view: View) => void;
 }
 
-const CameraModal: React.FC<CameraModalProps> = ({ onPictureTaken, onClose }) => {
-    const videoRef = useRef<HTMLVideoElement>(null);
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-    const streamRef = useRef<MediaStream | null>(null);
-    const [error, setError] = useState<string | null>(null);
-    const [hasCamera, setHasCamera] = useState(false);
-
-    useEffect(() => {
-        const startCamera = async () => {
-            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-                try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                    streamRef.current = stream;
-                    if (videoRef.current) {
-                        videoRef.current.srcObject = stream;
-                        setHasCamera(true);
-                    }
-                } catch (err) {
-                    console.error("Error accessing camera:", err);
-                    setError("Camera not available. Please check your browser permissions.");
-                }
-            } else {
-                setError("Camera access is not supported by your browser.");
-            }
-        };
-
-        startCamera();
-
-        return () => {
-            if (streamRef.current) {
-                streamRef.current.getTracks().forEach(track => track.stop());
-            }
-        };
-    }, []);
-
-    const handleCapture = () => {
-        if (videoRef.current && canvasRef.current && hasCamera) {
-            const video = videoRef.current;
-            const canvas = canvasRef.current;
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            const context = canvas.getContext('2d');
-            context?.drawImage(video, 0, 0, canvas.width, canvas.height);
-            const dataUrl = canvas.toDataURL('image/png');
-            onPictureTaken(dataUrl);
-        }
-    };
-
-    return (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-            <div className="bg-card-light dark:bg-card-dark rounded-lg shadow-xl w-full max-w-lg relative p-4">
-                <button onClick={onClose} className="absolute top-2 right-2 p-2 rounded-full bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600">
-                    <X size={20} />
-                </button>
-                <h3 className="text-lg font-bold text-center text-heading-light dark:text-heading-dark mb-4">Take a Photo</h3>
-                {error ? (
-                    <div className="text-red-500 text-center p-4">{error}</div>
-                ) : (
-                    <>
-                        <video ref={videoRef} autoPlay playsInline className="w-full h-auto max-h-[60vh] rounded-md bg-slate-900"></video>
-                        <canvas ref={canvasRef} className="hidden"></canvas>
-                        <div className="mt-4 flex justify-center">
-                            <button onClick={handleCapture} disabled={!hasCamera} className="bg-gradient-to-r from-primary to-accent text-white font-bold p-4 rounded-full shadow-lg hover:shadow-glow-primary transition-transform transform hover:scale-110 disabled:from-slate-400 disabled:to-slate-500 disabled:scale-100">
-                                <Camera size={28} />
-                            </button>
-                        </div>
-                    </>
-                )}
-            </div>
-        </div>
-    );
-};
-
-
-const ProfileComponent: React.FC = () => {
-    const { user, updateUserName, updateUserProfilePicture, updateUserEmail, updateUserGramPanchayat, forcePasswordChange, changePassword } = useAuth();
+const ProfileComponent: React.FC<ProfileComponentProps> = ({ setCurrentView }) => {
+    const { user, updateUserName, updateUserProfilePicture, updateUserEmail, updateUserGramPanchayat, forcePasswordChange, changePassword, togglePushNotifications } = useAuth();
+    const { messages } = useData();
     const { t } = useLanguage();
+
+    const [isEditing, setIsEditing] = useState(false);
     
     // State for user details
     const [name, setName] = useState(user?.name || '');
@@ -95,16 +27,21 @@ const ProfileComponent: React.FC = () => {
     const [isSaved, setIsSaved] = useState(false);
 
     // State for password change
+    const [isChangingPassword, setIsChangingPassword] = useState(false);
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmNewPassword, setConfirmNewPassword] = useState('');
     const [passwordError, setPasswordError] = useState('');
     const [passwordSuccess, setPasswordSuccess] = useState('');
 
-    const [isCameraOpen, setIsCameraOpen] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     
     const isPanchayatMissing = !user?.gramPanchayat;
+    
+    const unreadCount = useMemo(() => {
+        if (!user) return 0;
+        return messages.filter(m => m.recipientId === user.householdId && !m.read).length;
+    }, [user, messages]);
 
     useEffect(() => {
         if (user) {
@@ -113,6 +50,15 @@ const ProfileComponent: React.FC = () => {
             setGramPanchayat(user.gramPanchayat || '');
         }
     }, [user]);
+
+    useEffect(() => {
+        if (isPanchayatMissing || forcePasswordChange) {
+            setIsEditing(true);
+            if(forcePasswordChange) {
+                setIsChangingPassword(true);
+            }
+        }
+    }, [isPanchayatMissing, forcePasswordChange]);
 
     const handleSaveDetails = (e: React.FormEvent) => {
         e.preventDefault();
@@ -132,7 +78,12 @@ const ProfileComponent: React.FC = () => {
 
         if (changed) {
             setIsSaved(true);
-            setTimeout(() => setIsSaved(false), 2000);
+            setTimeout(() => {
+                setIsSaved(false);
+                setIsEditing(false);
+            }, 2000);
+        } else {
+            setIsEditing(false);
         }
     };
     
@@ -151,7 +102,11 @@ const ProfileComponent: React.FC = () => {
             setCurrentPassword('');
             setNewPassword('');
             setConfirmNewPassword('');
-            setTimeout(() => setPasswordSuccess(''), 3000);
+            setTimeout(() => {
+                setPasswordSuccess('');
+                setIsChangingPassword(false);
+                if (!isPanchayatMissing) setIsEditing(false);
+            }, 3000);
         } else {
             setPasswordError(result.message || 'An error occurred.');
         }
@@ -171,181 +126,182 @@ const ProfileComponent: React.FC = () => {
         }
     };
 
-    const handlePictureTaken = (dataUrl: string) => {
-        updateUserProfilePicture(dataUrl);
-        setIsCameraOpen(false);
-    };
-
-
     if (!user) {
         return <div>Loading profile...</div>;
     }
     
     const hasDetailsChanges = (name.trim() && name.trim() !== user.name) || (email.trim() !== (user.email || '')) || (isPanchayatMissing && !!gramPanchayat);
 
-    return (
-        <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-heading-light dark:text-heading-dark animate-fade-in-down">My Profile</h2>
-            
-            {isPanchayatMissing && (
-                 <div className="bg-amber-500/10 dark:bg-amber-500/20 border-l-4 border-amber-500 text-amber-700 dark:text-amber-300 p-4 rounded-r-lg shadow-md" role="alert">
-                    <div className="flex items-center">
-                        <AlertTriangle className="h-6 w-6 mr-3 flex-shrink-0"/>
-                        <div>
-                            <p className="font-bold">Action Required</p>
-                            <p className="text-sm">Please select your Gram Panchayat to continue using the app.</p>
-                        </div>
+    const ProfileHeader = () => (
+        <div className="flex flex-col items-center space-y-2 bg-card-light dark:bg-card-dark p-6 rounded-xl shadow-md border border-border-light dark:border-border-dark animate-fade-in-up">
+            <div className="relative p-1 bg-gradient-to-r from-primary to-accent rounded-full">
+                {user.profilePicture ? (
+                    <img src={user.profilePicture} alt="Profile" className="w-24 h-24 rounded-full object-cover border-4 border-card-light dark:border-card-dark" />
+                ) : (
+                    <div className="w-24 h-24 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center border-4 border-card-light dark:border-card-dark">
+                        <User size={48} className="text-slate-400 dark:text-slate-500" />
                     </div>
-                </div>
-            )}
-            
-            {forcePasswordChange && (
-                 <div className="bg-red-500/10 dark:bg-red-500/20 border-l-4 border-red-500 text-red-700 dark:text-red-300 p-4 rounded-r-lg shadow-md" role="alert">
-                    <div className="flex items-center">
-                        <AlertTriangle className="h-6 w-6 mr-3 flex-shrink-0"/>
-                        <div>
-                            <p className="font-bold">{t('securityAlert')}</p>
-                            <p className="text-sm">{t('weakPasswordWarning')}</p>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            <div className="flex flex-col items-center space-y-4 bg-card-light dark:bg-card-dark p-6 rounded-xl shadow-md border border-border-light dark:border-border-dark animate-fade-in-up" style={{ animationDelay: '100ms' }}>
-                <div className="relative p-1 bg-gradient-to-r from-primary to-accent rounded-full">
-                    {user.profilePicture ? (
-                        <img src={user.profilePicture} alt="Profile" className="w-32 h-32 rounded-full object-cover border-4 border-card-light dark:border-card-dark" />
-                    ) : (
-                        <div className="w-32 h-32 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center border-4 border-card-light dark:border-card-dark">
-                            <User size={64} className="text-slate-400 dark:text-slate-500" />
-                        </div>
-                    )}
-                </div>
-                <div className="flex space-x-4">
-                    <input type="file" accept="image/*" ref={fileInputRef} onChange={handleFileSelect} className="hidden" />
-                    <button onClick={() => fileInputRef.current?.click()} className="flex items-center space-x-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold py-2 px-4 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition">
-                        <Upload size={18} />
-                        <span>Upload</span>
-                    </button>
-                    <button onClick={() => setIsCameraOpen(true)} className="flex items-center space-x-2 bg-gradient-to-r from-primary to-accent text-white font-semibold py-2 px-4 rounded-lg hover:shadow-glow-primary transition">
-                        <Camera size={18} />
-                        <span>Take Photo</span>
-                    </button>
-                </div>
+                )}
             </div>
-            
-            <div className="bg-card-light dark:bg-card-dark p-6 rounded-xl shadow-md border border-border-light dark:border-border-dark animate-fade-in-up" style={{ animationDelay: '200ms' }}>
-                <form onSubmit={handleSaveDetails} className="space-y-4">
-                    <div>
-                        <label htmlFor="householdId" className="block text-sm font-medium text-text-light dark:text-text-dark mb-1">Household ID</label>
-                        <div className="relative">
-                            <Shield className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-                            <input
-                                id="householdId"
-                                type="text"
-                                value={user.householdId}
-                                readOnly
-                                className="w-full p-3 pl-10 border border-border-light dark:border-border-dark bg-slate-200 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400 rounded-lg focus:outline-none cursor-not-allowed"
-                            />
+            <h2 className="text-2xl font-bold text-heading-light dark:text-heading-dark">{user.name}</h2>
+            <p className="text-sm text-text-light dark:text-text-dark font-mono">{user.householdId}</p>
+        </div>
+    );
+
+    const MenuButton: React.FC<{icon: React.ElementType, label: string, onClick: () => void, badgeCount?: number}> = ({ icon: Icon, label, onClick, badgeCount }) => (
+         <button onClick={onClick} className="w-full flex items-center p-4 bg-card-light dark:bg-card-dark rounded-lg shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors border border-border-light dark:border-border-dark">
+            <Icon className="mr-4 text-primary" size={22} />
+            <span className="flex-grow text-left font-semibold text-heading-light dark:text-heading-dark">{label}</span>
+            {badgeCount && badgeCount > 0 && (
+              <span className="w-6 h-6 text-xs bg-red-500 text-white font-bold rounded-full flex items-center justify-center">
+                  {badgeCount > 9 ? '9+' : badgeCount}
+              </span>
+            )}
+            <ChevronRight className="ml-2 text-slate-400" size={20} />
+        </button>
+    );
+
+    const ToggleButton: React.FC<{icon: React.ElementType, label: string, isEnabled: boolean, onToggle: () => void}> = ({ icon: Icon, label, isEnabled, onToggle }) => (
+        <div className="w-full flex items-center p-4 bg-card-light dark:bg-card-dark rounded-lg shadow-sm border border-border-light dark:border-border-dark">
+            <Icon className="mr-4 text-primary" size={22} />
+            <span className="flex-grow text-left font-semibold text-heading-light dark:text-heading-dark">{label}</span>
+            <button onClick={onToggle} className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary ${isEnabled ? 'bg-primary' : 'bg-slate-300 dark:bg-slate-600'}`} aria-pressed={isEnabled}>
+                <span className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform ${isEnabled ? 'translate-x-6' : 'translate-x-1'}`}/>
+            </button>
+        </div>
+    );
+
+
+    if(isEditing) {
+        return (
+            <div className="space-y-6">
+                <h2 className="text-2xl font-bold text-heading-light dark:text-heading-dark animate-fade-in-down">Edit Profile</h2>
+                 {isPanchayatMissing && (
+                    <div className="bg-amber-500/10 dark:bg-amber-500/20 border-l-4 border-amber-500 text-amber-700 dark:text-amber-300 p-4 rounded-r-lg shadow-md" role="alert">
+                        <div className="flex items-center">
+                            <AlertTriangle className="h-6 w-6 mr-3 flex-shrink-0"/>
+                            <div>
+                                <p className="font-bold">Action Required</p>
+                                <p className="text-sm">Please select your Gram Panchayat to continue using the app.</p>
+                            </div>
                         </div>
                     </div>
-                     <div>
-                        <label htmlFor="name" className="block text-sm font-medium text-text-light dark:text-text-dark mb-1">Full Name</label>
-                        <div className="relative">
-                            <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-                            <input
-                                id="name"
-                                type="text"
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                placeholder="Your full name"
-                                className="w-full p-3 pl-10 border border-border-light dark:border-border-dark bg-background-light dark:bg-slate-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                            />
+                )}
+                 {forcePasswordChange && !isChangingPassword && (
+                    <div className="bg-red-500/10 dark:bg-red-500/20 border-l-4 border-red-500 text-red-700 dark:text-red-300 p-4 rounded-r-lg shadow-md" role="alert">
+                        <div className="flex items-center">
+                            <AlertTriangle className="h-6 w-6 mr-3 flex-shrink-0"/>
+                            <div>
+                                <p className="font-bold">{t('securityAlert')}</p>
+                                <p className="text-sm">{t('weakPasswordWarning')}</p>
+                            </div>
                         </div>
                     </div>
-                     <div>
-                        <label htmlFor="email" className="block text-sm font-medium text-text-light dark:text-text-dark mb-1">Email Address</label>
-                        <div className="relative">
-                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-                            <input
-                                id="email"
-                                type="email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                placeholder="your.email@example.com"
-                                className="w-full p-3 pl-10 border border-border-light dark:border-border-dark bg-background-light dark:bg-slate-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                            />
+                )}
+                <div className="bg-card-light dark:bg-card-dark p-6 rounded-xl shadow-md border border-border-light dark:border-border-dark animate-fade-in-up">
+                    <form onSubmit={handleSaveDetails} className="space-y-4">
+                        <div className="text-center mb-4">
+                            <div className="relative inline-block">
+                                <img src={user.profilePicture || `https://ui-avatars.com/api/?name=${user.name}&background=10b981&color=fff&size=128`} alt="Profile" className="w-24 h-24 rounded-full object-cover"/>
+                                <button type="button" onClick={() => fileInputRef.current?.click()} className="absolute -bottom-1 -right-1 bg-primary text-white p-1.5 rounded-full hover:bg-primary-dark">
+                                    <Camera size={16} />
+                                </button>
+                                <input type="file" accept="image/*" ref={fileInputRef} onChange={handleFileSelect} className="hidden" />
+                            </div>
                         </div>
-                    </div>
-                    <div>
+                        <div>
+                            <label htmlFor="name" className="block text-sm font-medium text-text-light dark:text-text-dark mb-1">Full Name</label>
+                            <div className="relative">
+                                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                                <input id="name" type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full p-3 pl-10 border border-border-light dark:border-border-dark bg-background-light dark:bg-slate-700 dark:text-white rounded-lg"/>
+                            </div>
+                        </div>
+                        <div>
+                            <label htmlFor="email" className="block text-sm font-medium text-text-light dark:text-text-dark mb-1">Email Address</label>
+                            <div className="relative">
+                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                                <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full p-3 pl-10 border border-border-light dark:border-border-dark bg-background-light dark:bg-slate-700 dark:text-white rounded-lg"/>
+                            </div>
+                        </div>
+                        <div>
                         <label htmlFor="gramPanchayat" className="block text-sm font-medium text-text-light dark:text-text-dark mb-1">Gram Panchayat</label>
                         {isPanchayatMissing ? (
-                            <GramPanchayatSelector
-                                value={gramPanchayat}
-                                onChange={(e) => setGramPanchayat(e.target.value)}
-                                required
-                            />
+                            <GramPanchayatSelector value={gramPanchayat} onChange={(e) => setGramPanchayat(e.target.value)} required />
                         ) : (
                             <div className="relative">
                                 <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-                                <input
-                                    id="gramPanchayat"
-                                    type="text"
-                                    value={user.gramPanchayat}
-                                    readOnly
-                                    className="w-full p-3 pl-10 border border-border-light dark:border-border-dark bg-slate-200 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400 rounded-lg focus:outline-none cursor-not-allowed"
-                                />
+                                <input id="gramPanchayat" type="text" value={user.gramPanchayat} readOnly className="w-full p-3 pl-10 border border-border-light dark:border-border-dark bg-slate-200 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400 rounded-lg cursor-not-allowed"/>
                             </div>
                         )}
-                    </div>
-                    <div className="flex items-center justify-end space-x-4">
-                         {isSaved && (
-                            <div className="flex items-center text-green-600 dark:text-green-400 animate-fade-in" role="status">
-                                <CheckCircle size={18} className="mr-2" />
-                                <span className="text-sm font-semibold">Saved!</span>
-                            </div>
-                        )}
-                        <button
-                            type="submit"
-                            disabled={!hasDetailsChanges}
-                            className="bg-gradient-to-r from-primary to-accent text-white font-bold py-2 px-6 rounded-lg flex items-center justify-center shadow-lg hover:shadow-glow-primary transition-all transform hover:scale-105 disabled:from-slate-400 disabled:to-slate-500 disabled:shadow-none disabled:scale-100 disabled:cursor-not-allowed"
-                        >
-                            <Save className="mr-2" size={18} /> Save Changes
-                        </button>
-                    </div>
-                </form>
+                        </div>
+                        <div className="flex items-center justify-end space-x-4">
+                             {isSaved && (
+                                <div className="flex items-center text-green-600 dark:text-green-400 animate-fade-in" role="status">
+                                    <CheckCircle size={18} className="mr-2" />
+                                    <span className="text-sm font-semibold">Saved!</span>
+                                </div>
+                            )}
+                            <button type="button" onClick={() => setIsEditing(false)} className="px-4 py-2 bg-slate-200 dark:bg-slate-600 text-slate-800 dark:text-slate-200 rounded-lg">Cancel</button>
+                            <button type="submit" disabled={!hasDetailsChanges} className="bg-gradient-to-r from-primary to-accent text-white font-bold py-2 px-6 rounded-lg flex items-center justify-center shadow-lg disabled:opacity-50">
+                                <Save className="mr-2" size={18} /> Save
+                            </button>
+                        </div>
+                    </form>
+                    
+                    {(forcePasswordChange || isChangingPassword) && (
+                         <div className="mt-6 pt-6 border-t border-border-light dark:border-border-dark">
+                             <h3 className="text-xl font-bold text-heading-light dark:text-heading-dark mb-4">{t('changePassword')}</h3>
+                             <form onSubmit={handleChangePassword} className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-text-light dark:text-text-dark mb-1">{t('currentPassword')}</label>
+                                    <input type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} required className="w-full p-3 border border-border-light dark:border-border-dark bg-background-light dark:bg-slate-700 dark:text-white rounded-lg" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-text-light dark:text-text-dark mb-1">{t('newPassword')}</label>
+                                    <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} required className="w-full p-3 border border-border-light dark:border-border-dark bg-background-light dark:bg-slate-700 dark:text-white rounded-lg" />
+                                    <PasswordStrengthIndicator password={newPassword} />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-text-light dark:text-text-dark mb-1">{t('confirmNewPassword')}</label>
+                                    <input type="password" value={confirmNewPassword} onChange={e => setConfirmNewPassword(e.target.value)} required className="w-full p-3 border border-border-light dark:border-border-dark bg-background-light dark:bg-slate-700 dark:text-white rounded-lg" />
+                                </div>
+                                {passwordError && <p className="text-red-500 text-sm">{passwordError}</p>}
+                                {passwordSuccess && <p className="text-success text-sm font-semibold">{passwordSuccess}</p>}
+                                <div className="flex justify-end">
+                                    <button type="submit" className="bg-gradient-to-r from-secondary to-slate-700 text-white font-bold py-2 px-6 rounded-lg flex items-center justify-center shadow-md">
+                                        <KeyRound className="mr-2" size={18} /> {t('changePassword')}
+                                    </button>
+                                </div>
+                             </form>
+                        </div>
+                    )}
+
+                </div>
             </div>
-            
-            <div className="bg-card-light dark:bg-card-dark p-6 rounded-xl shadow-md border border-border-light dark:border-border-dark animate-fade-in-up" style={{ animationDelay: '300ms' }}>
-                <h3 className="text-xl font-bold text-heading-light dark:text-heading-dark mb-4">{t('changePassword')}</h3>
-                 <form onSubmit={handleChangePassword} className="space-y-4">
-                    <div>
-                        <label htmlFor="current-password" className="block text-sm font-medium text-text-light dark:text-text-dark mb-1">{t('currentPassword')}</label>
-                        <input id="current-password" type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} required className="w-full p-3 border border-border-light dark:border-border-dark bg-background-light dark:bg-slate-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary" />
-                    </div>
-                    <div>
-                        <label htmlFor="new-password" className="block text-sm font-medium text-text-light dark:text-text-dark mb-1">{t('newPassword')}</label>
-                        <input id="new-password" type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} required className="w-full p-3 border border-border-light dark:border-border-dark bg-background-light dark:bg-slate-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary" />
-                        <PasswordStrengthIndicator password={newPassword} />
-                    </div>
-                    <div>
-                        <label htmlFor="confirm-new-password" className="block text-sm font-medium text-text-light dark:text-text-dark mb-1">{t('confirmNewPassword')}</label>
-                        <input id="confirm-new-password" type="password" value={confirmNewPassword} onChange={e => setConfirmNewPassword(e.target.value)} required className="w-full p-3 border border-border-light dark:border-border-dark bg-background-light dark:bg-slate-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary" />
-                    </div>
-                    {passwordError && <p className="text-red-500 text-sm">{passwordError}</p>}
-                    {passwordSuccess && <p className="text-success text-sm font-semibold">{passwordSuccess}</p>}
-                    <div className="flex justify-end">
-                        <button
-                            type="submit"
-                            className="bg-gradient-to-r from-secondary to-slate-700 text-white font-bold py-2 px-6 rounded-lg flex items-center justify-center shadow-md hover:shadow-lg transition-all"
-                        >
-                            <KeyRound className="mr-2" size={18} /> {t('changePassword')}
-                        </button>
-                    </div>
-                 </form>
+        )
+    }
+
+    return (
+        <div className="space-y-6">
+            <ProfileHeader />
+            <div className="space-y-3 animate-fade-in-up" style={{animationDelay: '100ms'}}>
+                <MenuButton icon={PenSquare} label="Edit Profile" onClick={() => setIsEditing(true)} />
+                <MenuButton icon={Mail} label="Inbox" onClick={() => setCurrentView(ViewType.Messages)} badgeCount={unreadCount} />
+                <MenuButton icon={MessageSquareWarning} label="File a Complaint" onClick={() => setCurrentView(ViewType.Complaints)} />
+                <a href={`mailto:${SUPPORT_EMAIL}?subject=Feedback%20for%20Eco%20Track`} className="w-full">
+                    <MenuButton icon={LifeBuoy} label="Provide Feedback" onClick={() => {}} />
+                </a>
+                <MenuButton icon={HelpCircle} label="Help & FAQ" onClick={() => setCurrentView(ViewType.Education)} />
             </div>
 
-            {isCameraOpen && <CameraModal onPictureTaken={handlePictureTaken} onClose={() => setIsCameraOpen(false)} />}
+            <div className="space-y-3 animate-fade-in-up" style={{animationDelay: '200ms'}}>
+                <h3 className="text-lg font-semibold text-text-light dark:text-text-dark px-2">Settings</h3>
+                <ToggleButton icon={Bell} label="Push Notifications" isEnabled={user.pushNotificationsEnabled ?? true} onToggle={togglePushNotifications} />
+                {/* FIX: Multiple statements in an arrow function's body should be wrapped in curly braces. */}
+                <button onClick={() => { setIsChangingPassword(true); setIsEditing(true); }} className="w-full">
+                    <MenuButton icon={KeyRound} label={t('changePassword')} onClick={() => {}} />
+                </button>
+            </div>
         </div>
     );
 };

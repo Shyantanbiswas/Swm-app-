@@ -30,6 +30,7 @@ interface AuthContextType {
   loginAsStaff: (identifier: string) => Promise<LoginResult>;
   logout: () => void;
   toggleBookingReminders: () => void;
+  togglePushNotifications: () => void;
   updateUserName: (newName: string) => void;
   updateUserEmail: (newEmail: string) => void;
   updateUserProfilePicture: (pictureDataUrl: string) => void;
@@ -180,6 +181,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         status: 'active',
         hasGreenBadge: false,
         bookingReminders: true,
+        pushNotificationsEnabled: true,
         profilePicture: '',
         email: normalizedEmail,
         createdAt: new Date(),
@@ -303,6 +305,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         updateUserData(updatedUser);
     }
   };
+  
+  const togglePushNotifications = () => {
+    if(user) {
+        const updatedUser = { ...user, pushNotificationsEnabled: !user.pushNotificationsEnabled };
+        updateUserData(updatedUser);
+    }
+  };
 
   const updateUserName = (newName: string) => {
     if(user) {
@@ -333,7 +342,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   return (
-    <AuthContext.Provider value={{ isLoggedIn, user, forcePasswordChange, login, signup, loginAsAdmin, loginAsStaff, logout, toggleBookingReminders, updateUserName, updateUserEmail, updateUserProfilePicture, updateUserGramPanchayat, changePassword }}>
+    <AuthContext.Provider value={{ isLoggedIn, user, forcePasswordChange, login, signup, loginAsAdmin, loginAsStaff, logout, toggleBookingReminders, togglePushNotifications, updateUserName, updateUserEmail, updateUserProfilePicture, updateUserGramPanchayat, changePassword }}>
       {children}
     </AuthContext.Provider>
   );

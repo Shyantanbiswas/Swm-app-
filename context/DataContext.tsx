@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
-import type { User, Payment, Complaint, Booking, Message } from '../types';
+import type { User, Payment, Complaint, Booking, Message, WasteLog, SellRequest, SellRequestMessage } from '../types';
 
 export interface SubscriptionPlans {
     standard: number;
@@ -19,7 +19,7 @@ const initialUsers: User[] = [
     { name: 'Jane Doe', householdId: 'HH-JANE-9876', identifier: '9876543210', password: 'password', role: 'household', status: 'active', hasGreenBadge: false, bookingReminders: true, profilePicture: '', email: 'jane.doe@example.com', createdAt: new Date(2024, 6, 10), outstandingBalance: 150, familySize: 6, address: { area: 'Willow Creek', landmark: 'Near Park', pincode: '123456' }, gramPanchayat: 'UKHRA' },
     { name: 'SHYANTAN BISWAS', householdId: 'ADM-SHYA-9052', identifier: '9635929052', password: 'Password@123', role: 'admin', status: 'active', hasGreenBadge: true, bookingReminders: true, profilePicture: '', email: 'shyantanbiswas7@gmail.com', createdAt: new Date(2024, 5, 1), outstandingBalance: 75, familySize: 4, address: { area: 'Main Street', landmark: 'City Hall', pincode: '700001' }, gramPanchayat: 'KAJORA' },
     { name: 'Ravi Kumar', householdId: 'EMP-RAVI-1234', identifier: '8888888888', password: 'Password@123', role: 'employee', status: 'active', createdAt: new Date(2024, 5, 2), attendanceStatus: 'on_leave', familySize: 1, address: { area: 'Staff Quarters', landmark: 'Unit 5', pincode: '110022' }, outstandingBalance: 0, email: 'ravi.k@staff.com', gramPanchayat: 'KHANDRA' },
-    { name: 'Suresh Singh', householdId: 'CPT-SURE-5678', identifier: '9999999999', password: 'Password@123', role: 'captain', status: 'active', createdAt: new Date(2024, 5, 3), attendanceStatus: 'on_leave', familySize: 1, address: { area: 'Staff Quarters', landmark: 'Unit 8', pincode: '110022' }, outstandingBalance: 0, email: 'suresh.s@staff.com', gramPanchayat: 'DAKSHINKHANDA' },
+    { name: 'Suresh Singh', householdId: 'CPT-SURE-5678', identifier: '9999999999', password: 'Password@123', role: 'captain', status: 'active', createdAt: new Date(2024, 5, 3), attendanceStatus: 'on_leave', familySize: 1, address: { area: 'Staff Quarters', landmark: 'Unit 8', pincode: '110022' }, outstandingBalance: 0, email: 'suresh.s@staff.com', gramPanchayat: 'DAKSHINKHANDA', profilePicture: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?q=80&w=1887&auto=format&fit=crop' },
     { name: 'Amit Das', householdId: 'SNW-AMIT-4321', identifier: '6666666666', password: 'Password@123', role: 'sanitaryworker', status: 'active', createdAt: new Date(2024, 5, 4), attendanceStatus: 'present', familySize: 1, address: { area: 'Staff Quarters', landmark: 'Unit 9', pincode: '110022' }, outstandingBalance: 0, email: 'amit.d@staff.com', gramPanchayat: 'MADANPUR' },
 ];
 
@@ -49,6 +49,23 @@ const initialMessages: Message[] = [
 
 const initialBroadcastMessage = "Eco Track: A friendly reminder that monthly payments are due by the end of the week. Thank you!";
 const initialStaffBroadcastMessage = "Believe you can and you're halfway there. - Theodore Roosevelt";
+
+const initialWasteLogs: WasteLog[] = [];
+
+const initialSellRequests: SellRequest[] = [
+    {
+        id: 'SELL-001',
+        householdId: 'ADM-SHYA-9052',
+        date: new Date(2024, 6, 25),
+        materials: { plastic: true, paper: false, bottles: true, glass: false, other: '' },
+        weightKg: 5,
+        status: 'Approved'
+    }
+];
+
+const initialSellRequestMessages: SellRequestMessage[] = [
+    { id: 'SRM-001', sellRequestId: 'SELL-001', sender: 'admin', text: 'Hi, I have approved your request. When is a good time for us to come by and pick up the materials?', timestamp: new Date() }
+];
 // --- END MOCK DATABASE ---
 
 
@@ -84,6 +101,9 @@ interface DataContextType {
   complaints: Complaint[];
   bookings: Booking[];
   messages: Message[];
+  wasteLogs: WasteLog[];
+  sellRequests: SellRequest[];
+  sellRequestMessages: SellRequestMessage[];
   broadcastMessage: string | null;
   staffBroadcastMessage: string | null;
   subscriptionPlans: SubscriptionPlans;
@@ -104,6 +124,10 @@ interface DataContextType {
   updateUserAttendance: (householdId: string, status: 'present' | 'absent' | 'on_leave', loginTime: Date, ipAddress: string) => void;
   updateUserLocation: (householdId: string, location: { lat: number, lng: number, timestamp: Date }) => void;
   updateSubscriptionPlans: (newPlans: SubscriptionPlans) => void;
+  addWasteLog: (log: WasteLog) => void;
+  addSellRequest: (request: SellRequest) => void;
+  updateSellRequest: (request: SellRequest) => void;
+  addSellRequestMessage: (message: Omit<SellRequestMessage, 'id' | 'timestamp'>) => void;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -117,6 +141,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [broadcastMessage, setBroadcastMessage] = useState<string | null>(() => loadFromStorage('ecotrack_broadcast', initialBroadcastMessage));
   const [staffBroadcastMessage, setStaffBroadcastMessage] = useState<string | null>(() => loadFromStorage('ecotrack_staff_broadcast', initialStaffBroadcastMessage));
   const [subscriptionPlans, setSubscriptionPlans] = useState<SubscriptionPlans>(() => loadFromStorage('ecotrack_subscription_plans', initialSubscriptionPlans));
+  const [wasteLogs, setWasteLogs] = useState<WasteLog[]>(() => loadFromStorage('ecotrack_wastelogs', initialWasteLogs));
+  const [sellRequests, setSellRequests] = useState<SellRequest[]>(() => loadFromStorage('ecotrack_sellrequests', initialSellRequests));
+  const [sellRequestMessages, setSellRequestMessages] = useState<SellRequestMessage[]>(() => loadFromStorage('ecotrack_sell_request_messages', initialSellRequestMessages));
 
 
   useEffect(() => { localStorage.setItem('ecotrack_users', JSON.stringify(users)); }, [users]);
@@ -127,6 +154,10 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => { localStorage.setItem('ecotrack_broadcast', JSON.stringify(broadcastMessage)); }, [broadcastMessage]);
   useEffect(() => { localStorage.setItem('ecotrack_staff_broadcast', JSON.stringify(staffBroadcastMessage)); }, [staffBroadcastMessage]);
   useEffect(() => { localStorage.setItem('ecotrack_subscription_plans', JSON.stringify(subscriptionPlans)); }, [subscriptionPlans]);
+  useEffect(() => { localStorage.setItem('ecotrack_wastelogs', JSON.stringify(wasteLogs)); }, [wasteLogs]);
+  useEffect(() => { localStorage.setItem('ecotrack_sellrequests', JSON.stringify(sellRequests)); }, [sellRequests]);
+  useEffect(() => { localStorage.setItem('ecotrack_sell_request_messages', JSON.stringify(sellRequestMessages)); }, [sellRequestMessages]);
+
 
   const addUser = (user: User) => {
     setUsers(prev => [...prev, user]);
@@ -258,7 +289,28 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setSubscriptionPlans(newPlans);
   };
 
-  const value = { users, payments, complaints, bookings, messages, broadcastMessage, staffBroadcastMessage, subscriptionPlans, addUser, updateUser, deleteUser, clearUserWarning, addPayment, updatePayment, addComplaint, updateComplaint, addBooking, updateBooking, addMessage, markMessagesAsRead, updateBroadcastMessage, updateStaffBroadcastMessage, updateUserAttendance, updateUserLocation, updateSubscriptionPlans };
+  const addWasteLog = (log: WasteLog) => {
+    setWasteLogs(prev => [...prev, log]);
+  };
+
+  const addSellRequest = (request: SellRequest) => {
+    setSellRequests(prev => [request, ...prev]);
+  };
+
+  const updateSellRequest = (updatedRequest: SellRequest) => {
+      setSellRequests(prev => prev.map(r => r.id === updatedRequest.id ? updatedRequest : r));
+  };
+  
+  const addSellRequestMessage = (message: Omit<SellRequestMessage, 'id' | 'timestamp'>) => {
+    const newMessage: SellRequestMessage = {
+        ...message,
+        id: `SRM-${Date.now()}`,
+        timestamp: new Date()
+    };
+    setSellRequestMessages(prev => [...prev, newMessage]);
+  };
+
+  const value = { users, payments, complaints, bookings, messages, wasteLogs, sellRequests, sellRequestMessages, broadcastMessage, staffBroadcastMessage, subscriptionPlans, addUser, updateUser, deleteUser, clearUserWarning, addPayment, updatePayment, addComplaint, updateComplaint, addBooking, updateBooking, addMessage, markMessagesAsRead, updateBroadcastMessage, updateStaffBroadcastMessage, updateUserAttendance, updateUserLocation, updateSubscriptionPlans, addWasteLog, addSellRequest, updateSellRequest, addSellRequestMessage };
 
   return (
     <DataContext.Provider value={value}>

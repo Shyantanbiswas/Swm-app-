@@ -25,6 +25,9 @@ import AdminAuthFlow from './components/AdminAuthFlow';
 import StaffAuthFlow from './components/StaffAuthFlow';
 import StaffApp from './components/StaffApp';
 import BottomNav from './components/BottomNav';
+import TrackComponent from './components/Track';
+import SellComponent from './components/SellComponent';
+import SellHistory from './components/SellHistory';
 
 // This is the main user-facing application component
 const UserApp: React.FC<{ users: User[] }> = ({ users }) => {
@@ -105,7 +108,7 @@ const UserApp: React.FC<{ users: User[] }> = ({ users }) => {
     if (!user) return null;
     switch (currentView) {
       case ViewType.Dashboard:
-        return <Dashboard user={user} bookings={userBookings} users={users} />;
+        return <Dashboard user={user} bookings={userBookings} setCurrentView={setCurrentView} />;
       case ViewType.Payment:
         return <PaymentComponent setCurrentView={setCurrentView} />;
       case ViewType.History:
@@ -119,9 +122,15 @@ const UserApp: React.FC<{ users: User[] }> = ({ users }) => {
       case ViewType.Messages:
         return <MessagesComponent />;
       case ViewType.Profile:
-        return <ProfileComponent />;
+        return <ProfileComponent setCurrentView={setCurrentView}/>;
+      case ViewType.Track:
+        return <TrackComponent users={users} />;
+      case ViewType.Sell:
+        return <SellComponent setCurrentView={setCurrentView} />;
+      case ViewType.SellHistory:
+        return <SellHistory setCurrentView={setCurrentView} />;
       default:
-        return <Dashboard user={user} bookings={userBookings} users={users} />;
+        return <Dashboard user={user} bookings={userBookings} setCurrentView={setCurrentView} />;
     }
   };
 

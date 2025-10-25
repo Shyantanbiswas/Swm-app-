@@ -7,6 +7,7 @@ export default {
   "book": "बुक करें",
   "history": "इतिहास",
   "profile": "प्रोफ़ाइल",
+  "track": "ट्रैक",
   "dashboardTitle": "स्वागत है, {{name}}!",
   "balance": "शेष राशि",
   "pendingBalance": "बकाया शेष।",
@@ -81,5 +82,8 @@ export default {
   "pwUppercase": "बड़ा अक्षर",
   "pwLowercase": "छोटा अक्षर",
   "pwNumber": "संख्या",
-  "pwSpecial": "विशेष अक्षर"
+  "pwSpecial": "विशेष अक्षर",
+  "mySellRequests": "मेरे बेचने के अनुरोध",
+  "noSellRequests": "आपने अभी तक सामग्री बेचने का कोई अनुरोध नहीं किया है।",
+  "chatWithAdmin": "एडमिन के साथ चैट करें"
 }

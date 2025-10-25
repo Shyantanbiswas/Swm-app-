@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, Users, ShoppingBasket, MessageSquareWarning, IndianRupee, LogOut, Sun, Moon, Recycle, Megaphone, Target, Bot, Settings, Car, ClipboardList } from 'lucide-react';
+import { LayoutDashboard, Users, ShoppingBasket, MessageSquareWarning, IndianRupee, LogOut, Sun, Moon, Recycle, Megaphone, Target, Bot, Settings, Car, ClipboardList, ShoppingBag } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
@@ -15,8 +15,9 @@ import AdminSubscriptionManagement from './AdminSubscriptionManagement';
 import AdminIPTracker from './AdminIPTracker';
 import AdminDataOverview from './AdminDataOverview';
 import AdminStaffNotice from './AdminStaffNotice';
+import AdminSellRequests from './AdminSellRequests';
 
-type AdminView = 'dashboard' | 'data-overview' | 'users' | 'bookings' | 'complaints' | 'payments' | 'broadcast' | 'employees' | 'captains' | 'sanitaryworkers' | 'ai-management' | 'subscription-management' | 'ip-tracker' | 'staff-notice';
+type AdminView = 'dashboard' | 'data-overview' | 'users' | 'bookings' | 'complaints' | 'payments' | 'broadcast' | 'employees' | 'captains' | 'sanitaryworkers' | 'ai-management' | 'subscription-management' | 'ip-tracker' | 'staff-notice' | 'sell-requests';
 
 interface AdminAppProps {
     handleAdminLogout: () => void;
@@ -25,7 +26,7 @@ interface AdminAppProps {
 const AdminApp: React.FC<AdminAppProps> = ({ handleAdminLogout }) => {
     const { theme, toggleTheme } = useTheme();
     const { user } = useAuth();
-    const { users, payments, complaints, bookings, updateUser, updateComplaint, updateBooking } = useData();
+    const { users, payments, complaints, bookings, sellRequests, updateComplaint, updateBooking, updateSellRequest } = useData();
     const [currentView, setCurrentView] = useState<AdminView>('dashboard');
 
     const renderView = () => {
@@ -35,9 +36,11 @@ const AdminApp: React.FC<AdminAppProps> = ({ handleAdminLogout }) => {
             case 'data-overview':
                 return <AdminDataOverview users={users} payments={payments} complaints={complaints} bookings={bookings} />;
             case 'users':
-                return <AdminUserManagement users={users} updateUser={updateUser} />;
+                return <AdminUserManagement users={users} updateUser={() => {}} />;
             case 'bookings':
                 return <AdminBookingManagement bookings={bookings} users={users} updateBooking={updateBooking} />;
+            case 'sell-requests':
+                return <AdminSellRequests sellRequests={sellRequests} users={users} updateSellRequest={updateSellRequest} />;
             case 'complaints':
                 return <AdminComplaintManagement complaints={complaints} users={users} updateComplaint={updateComplaint} />;
             case 'payments':
@@ -84,6 +87,7 @@ const AdminSidebar: React.FC<{currentView: AdminView, setCurrentView: (view: Adm
         { id: 'data-overview', label: 'Data Overview', icon: ClipboardList },
         { id: 'users', label: 'User Details', icon: Users },
         { id: 'bookings', label: 'Bookings', icon: ShoppingBasket },
+        { id: 'sell-requests', label: 'Sell Requests', icon: ShoppingBag },
         { id: 'complaints', label: 'Complaints', icon: MessageSquareWarning },
         { id: 'payments', label: 'Payments', icon: IndianRupee },
         { id: 'employees', label: 'Employee Details', icon: Users },

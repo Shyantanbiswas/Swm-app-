@@ -7,6 +7,7 @@ export default {
   "book": "Book",
   "history": "History",
   "profile": "Profile",
+  "track": "Track",
   "dashboardTitle": "Welcome, {{name}}!",
   "balance": "Balance",
   "pendingBalance": "Pending balance.",
@@ -81,5 +82,8 @@ export default {
   "pwUppercase": "Uppercase",
   "pwLowercase": "Lowercase",
   "pwNumber": "Number",
-  "pwSpecial": "Special"
+  "pwSpecial": "Special",
+  "mySellRequests": "My Sell Requests",
+  "noSellRequests": "You have not made any requests to sell materials yet.",
+  "chatWithAdmin": "Chat with Admin"
 }
